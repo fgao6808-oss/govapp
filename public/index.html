@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物料及商品数据治理系统</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f0f4f8;--bg2:#fff;--bg3:#f7f9fc;--bg4:#eef2f7;
+  --border:#e2e8f0;--border2:#cbd5e1;
+  --text:#1e293b;--text2:#475569;--text3:#94a3b8;
+  --blue:#2563eb;--blue2:#1d4ed8;--blue-light:#eff6ff;
+  --cyan:#0891b2;--cyan-light:#ecfeff;
+  --green:#059669;--green-light:#ecfdf5;
+  --amber:#d97706;--amber-light:#fffbeb;
+  --red:#dc2626;--red-light:#fef2f2;
+  --sidebar:#1e3a5f;--sidebar-text:#94b8d8;
+}
+html,body{height:100%;font-family:'Microsoft YaHei',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+#login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1e3a5f,#1e40af,#0e7490)}
+.login-box{background:#fff;border-radius:16px;padding:40px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo .icon{width:56px;height:56px;background:linear-gradient(135deg,#2563eb,#06b6d4);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 12px}
+.login-logo h1{font-size:17px;color:var(--text);font-weight:600;line-height:1.4}
+.login-logo span{font-size:12px;color:var(--text3)}
+.login-err{background:var(--red-light);color:var(--red);padding:8px 12px;border-radius:6px;font-size:13px;margin-bottom:12px;display:none}
+#app{display:none;height:100vh;flex-direction:row}
+.sidebar{width:220px;min-width:220px;background:var(--sidebar);display:flex;flex-direction:column;box-shadow:2px 0 8px rgba(0,0,0,.1)}
+.logo{padding:16px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,#3b82f6,#06b6d4);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.logo-text{font-size:12px;font-weight:600;color:#fff;line-height:1.4}
+.logo-text span{display:block;color:var(--sidebar-text);font-size:11px;font-weight:400}
+.nav{flex:1;overflow-y:auto;padding:8px 0}
+.nav::-webkit-scrollbar{width:3px}
+.nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
+.nav-group-label{padding:10px 16px 3px;font-size:11px;color:rgba(148,184,216,.65);letter-spacing:.08em}
+.nav-item{padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:9px;font-size:13px;color:var(--sidebar-text);transition:all .15s;border-left:2px solid transparent}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.14);color:#fff;border-left-color:#3b82f6}
+.nav-sub .nav-item{padding-left:30px;font-size:12.5px}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 22px;gap:16px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.breadcrumb{font-size:13px;color:var(--text2)}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#0891b2);display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:600}
+.content{flex:1;overflow-y:auto;padding:22px}
+.content::-webkit-scrollbar{width:5px}
+.content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card-sm{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+h1.pt{font-size:18px;font-weight:600;margin-bottom:18px}
+h2{font-size:15px;font-weight:600;margin-bottom:14px}
+h3{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:8px}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.b-blue{background:var(--blue-light);color:var(--blue)}
+.b-green{background:var(--green-light);color:var(--green)}
+.b-amber{background:var(--amber-light);color:var(--amber)}
+.b-red{background:var(--red-light);color:var(--red)}
+.b-gray{background:var(--bg4);color:var(--text3)}
+.b-cyan{background:var(--cyan-light);color:var(--cyan)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:13px;cursor:pointer;border:none;font-family:inherit;transition:all .15s;font-weight:500;white-space:nowrap}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover:not(:disabled){background:var(--blue2)}
+.btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border2)}.btn-outline:hover:not(:disabled){background:var(--bg3);color:var(--text)}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:6px}
+.btn-green{background:var(--green-light);color:var(--green);border:1px solid #a7f3d0}
+.btn-red{background:var(--red-light);color:var(--red);border:1px solid #fecaca}
+.tbl-wrap{border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:10px 12px;text-align:left;font-weight:500;color:var(--text3);border-bottom:1px solid var(--border);font-size:12px;background:var(--bg3);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbff}
+.fg{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end}
+.fi{display:flex;flex-direction:column;gap:4px}
+label{font-size:12px;color:var(--text3);font-weight:500}
+input[type=text],input[type=password],input[type=number],select,textarea{background:#fff;border:1px solid var(--border2);border-radius:7px;padding:7px 10px;font-size:13px;color:var(--text);font-family:inherit;outline:none;transition:border-color .15s;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.stat-num{font-size:26px;font-weight:700;margin-top:4px}
+.stat-sub{font-size:12px;color:var(--text3);margin-top:3px}
+.upload-zone{border:2px dashed var(--border2);border-radius:10px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg3)}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--blue);background:var(--blue-light)}
+.steps{display:flex;align-items:center;padding:16px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;flex-wrap:wrap;gap:6px}
+.step{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text3)}
+.step.active{color:var(--blue);font-weight:500}
+.step.done{color:var(--green)}
+.step-num{width:26px;height:26px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.step.active .step-num{background:var(--blue);color:#fff}
+.step.done .step-num{background:var(--green);color:#fff}
+.step-line{height:2px;width:36px;background:var(--border2);flex-shrink:0}
+.progress-bar{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;border-radius:3px;transition:width .4s}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:28px;min-width:400px;max-width:600px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:20px}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;display:flex;align-items:flex-start;gap:8px}
+.alert-green{background:var(--green-light);color:var(--green);border:1px solid #a7f3d0}
+.alert-red{background:var(--red-light);color:var(--red);border:1px solid #fecaca}
+.alert-amber{background:var(--amber-light);color:var(--amber);border:1px solid #fde68a}
+.alert-blue{background:var(--blue-light);color:var(--blue);border:1px solid #bfdbfe}
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast-item{padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.15);animation:slideIn .3s ease;display:flex;align-items:center;gap:8px}
+.toast-success{background:var(--green);color:#fff}
+.toast-error{background:var(--red);color:#fff}
+.toast-info{background:var(--blue);color:#fff}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.hero{background:linear-gradient(135deg,#1e3a5f,#1e40af 50%,#0e7490);border-radius:12px;padding:26px 28px;color:#fff;margin-bottom:20px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;right:-50px;top:-50px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.06)}
+input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue);cursor:pointer;flex-shrink:0}
+.empty{text-align:center;padding:40px;color:var(--text3)}
+.empty-icon{font-size:40px;margin-bottom:10px}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.form-group{margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<div id="login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="icon">⬡</div>
+      <h1>物料及商品数据治理系统</h1>
+      <span>Data Governance Platform</span>
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <div class="form-group"><label>用户名</label><input type="text" id="inp-user" value="admin"></div>
+    <div class="form-group"><label>密码</label><input type="password" id="inp-pwd" value="12345a" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn btn-primary" id="login-btn" style="width:100%;margin-top:8px;padding:10px" onclick="doLogin()">登 录</button>
+    <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--text3)">默认账号 admin / 12345a</div>
+  </div>
+</div>
+
+<div id="app" style="display:none;height:100vh;flex-direction:row">
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">⬡</div>
+      <div class="logo-text">物料及商品<span>数据治理系统</span></div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" data-page="dashboard" onclick="navTo(this)">⊞ &nbsp;工作台</div>
+      <div class="nav-group-label">物料管理</div>
+      <div class="nav-sub">
+        <div class="nav-item" data-page="mat-gov" onclick="navTo(this)">物料治理</div>
+        <div class="nav-item" data-page="mat-raw" onclick="navTo(this)">原始物料</div>
+        <div class="nav-item" data-page="mat-arch" onclick="navTo(this)">物料档案</div>
+      </div>
+      <div class="nav-group-label">品类管理</div>
+      <div class="nav-sub">
+        <div class="nav-item" data-page="cat-dir" onclick="navTo(this)">品类目录</div>
+        <div class="nav-item" data-page="cat-attr" onclick="navTo(this)">品类属性</div>
+      </div>
+      <div class="nav-group-label">商品管理</div>
+      <div class="nav-sub">
+        <div class="nav-item" data-page="goods-unify" onclick="navTo(this)">商品归一</div>
+        <div class="nav-item" data-page="goods-raw" onclick="navTo(this)">原始商品</div>
+        <div class="nav-item" data-page="goods-std" onclick="navTo(this)">标准商品</div>
+      </div>
+      <div class="nav-item" data-page="mapping" onclick="navTo(this)">⇄ &nbsp;商品物料映射</div>
+      <div class="nav-item" data-page="settings" onclick="navTo(this)">⚙ &nbsp;系统设置</div>
+    </nav>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="breadcrumb" id="bc">工作台</div>
+      <div style="flex:1"></div>
+      <div style="font-size:12px;color:var(--text3);margin-right:14px"><span style="color:var(--green)">●</span> 系统正常 &nbsp;|&nbsp; <span id="model-label">未配置AI</span></div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2)">
+        <div class="avatar">A</div>
+        <span id="username-label">admin</span>
+        <button class="btn btn-outline btn-sm" onclick="doLogout()">退出</button>
+      </div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeMd()">
+  <div class="modal" id="modal-box"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+// ── API Layer ─────────────────────────────────────
+let TOKEN = localStorage.getItem('token') || '';
+const API = async (method, path, body, isFile) => {
+  const opts = { method, headers: { 'Authorization': 'Bearer ' + TOKEN } };
+  if (isFile) { opts.body = body; }
+  else if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  const r = await fetch('/api' + path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+};
+const GET = (p) => API('GET', p);
+const POST = (p, b) => API('POST', p, b);
+const PUT = (p, b) => API('PUT', p, b);
+const DEL = (p) => API('DELETE', p);
+const UPLOAD = (path, formData) => API('POST', path, formData, true);
+
+// ── Helpers ───────────────────────────────────────
+const fmtDate = d => d ? new Date(d).toLocaleDateString('zh-CN') : '—';
+const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+const toast = (msg, type='success') => {
+  const t = document.getElementById('toast');
+  const d = document.createElement('div');
+  d.className = `toast-item toast-${type}`;
+  d.textContent = (type==='success'?'✓ ':type==='error'?'✗ ':'ℹ ') + msg;
+  t.appendChild(d);
+  setTimeout(() => d.style.opacity='0', 2500);
+  setTimeout(() => d.remove(), 2900);
+};
+const openMd = html => { document.getElementById('modal-box').innerHTML = html; document.getElementById('modal-bg').classList.add('open'); };
+const closeMd = () => document.getElementById('modal-bg').classList.remove('open');
+const $ = id => document.getElementById(id);
+const setHTML = (id, html) => { const el = $(id); if(el) el.innerHTML = html; };
+const exportCSV = (filename, headers, rows) => {
+  const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${(c||'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download = filename; a.click();
+};
+
+// ── Auth ─────────────────────────────────────────
+async function doLogin() {
+  const btn = $('login-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 登录中...';
+  try {
+    const data = await POST('/login', { username: $('inp-user').value.trim(), password: $('inp-pwd').value });
+    TOKEN = data.token;
+    localStorage.setItem('token', TOKEN);
+    $('username-label').textContent = data.username;
+    $('login-page').style.display = 'none';
+    $('app').style.display = 'flex';
+    $('login-err').style.display = 'none';
+    await loadModelLabel();
+    navTo(document.querySelector('.nav-item[data-page="dashboard"]'));
+  } catch(e) {
+    $('login-err').style.display = 'block';
+    $('login-err').textContent = e.message || '登录失败';
+  }
+  btn.disabled = false; btn.textContent = '登 录';
+}
+function doLogout() {
+  TOKEN = ''; localStorage.removeItem('token');
+  $('app').style.display = 'none'; $('login-page').style.display = 'flex';
+}
+async function loadModelLabel() {
+  try {
+    const s = await GET('/settings');
+    const map = {openai:'OpenAI GPT',deepseek:'DeepSeek',qianwen:'通义千问',claude:'Claude',custom:'自定义'};
+    $('model-label').textContent = s.api_key ? (map[s.api_type]||'AI已配置') : '未配置AI';
+  } catch{}
+}
+
+// ── Nav ───────────────────────────────────────────
+const PAGE_TITLES = {dashboard:'工作台','mat-gov':'物料管理 / 物料治理','mat-raw':'物料管理 / 原始物料','mat-arch':'物料管理 / 物料档案','cat-dir':'品类管理 / 品类目录','cat-attr':'品类管理 / 品类属性','goods-unify':'商品管理 / 商品归一','goods-raw':'商品管理 / 原始商品','goods-std':'商品管理 / 标准商品',mapping:'商品物料映射',settings:'系统设置'};
+function navTo(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  const page = el.dataset.page;
+  $('bc').textContent = PAGE_TITLES[page] || page;
+  $('content').scrollTop = 0;
+  const fn = {dashboard:pgDashboard,'mat-gov':pgMatGov,'mat-raw':pgMatRaw,'mat-arch':pgMatArch,'cat-dir':pgCatDir,'cat-attr':pgCatAttr,'goods-unify':pgGoodsUnify,'goods-raw':pgGoodsRaw,'goods-std':pgGoodsStd,mapping:pgMapping,settings:pgSettings};
+  if (fn[page]) fn[page]();
+}
+function goPage(page) { navTo(document.querySelector(`.nav-item[data-page="${page}"]`)); }
+
+// ══════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════
+async function pgDashboard() {
+  $('content').innerHTML = `<div class="hero"><div style="position:relative"><div style="font-size:11px;letter-spacing:.14em;color:rgba(147,210,255,.9);margin-bottom:8px;font-weight:500">▸ DATA GOVERNANCE PLATFORM</div><h1 style="font-size:20px;margin-bottom:10px;color:#fff;font-weight:700">物料及商品数据治理系统</h1><p style="color:rgba(255,255,255,.8);font-size:13px;line-height:1.9;max-width:640px">集成 AI 大模型能力，提供物料数据智能治理、商品信息标准化归一、品类体系构建及属性智能生成。支持 OpenAI / DeepSeek / 通义千问 / Claude 四种模型。</p></div></div><div id="stats-grid" class="grid4" style="margin-bottom:20px"><div class="stat-card" style="border-top:3px solid #ccc;text-align:center;color:var(--text3)">加载中...</div></div><div class="grid2" id="dash-lists"></div>`;
+  try {
+    const s = await GET('/stats');
+    $('stats-grid').innerHTML = `
+    <div class="stat-card" style="border-top:3px solid var(--blue)"><div style="font-size:12px;color:var(--text3)">物料档案总数</div><div class="stat-num" style="color:var(--blue)">${s.matArchive.toLocaleString()}</div><div class="stat-sub">标准化物料档案</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--cyan)"><div style="font-size:12px;color:var(--text3)">标准商品档案</div><div class="stat-num" style="color:var(--cyan)">${s.goodsStd.toLocaleString()}</div><div class="stat-sub">归一后标准商品</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--amber)"><div style="font-size:12px;color:var(--text3)">品类目录数</div><div class="stat-num" style="color:var(--amber)">${s.categories.toLocaleString()}</div><div class="stat-sub">末级品类条数</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--red)"><div style="font-size:12px;color:var(--text3)">待治理物料</div><div class="stat-num" style="color:var(--red)">${s.matUntreated}</div><div class="stat-sub">原始物料未治理</div></div>`;
+    const [rawList, archList] = await Promise.all([GET('/mat-raw?q='), GET('/mat-archive?q=')]);
+    $('dash-lists').innerHTML = `
+    <div class="card"><h2>📋 最新原始物料</h2>${rawList.slice(0,5).map(r=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px"><span style="font-family:monospace;font-size:12px;color:var(--blue);flex-shrink:0">${r.code}</span><span style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</span><span class="badge ${r.status==='已治理'?'b-green':'b-amber'}">${r.status}</span></div>`).join('')}${rawList.length===0?'<div class="empty"><div class="empty-icon">📋</div>暂无数据</div>':''}<div style="margin-top:10px"><button class="btn btn-outline btn-sm" onclick="goPage('mat-raw')">查看全部原始物料 →</button></div></div>
+    <div class="card"><h2>🗂 最新物料档案</h2>${archList.slice(0,5).map(a=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px"><span style="font-family:monospace;font-size:12px;color:var(--blue);flex-shrink:0">${a.code}</span><span style="flex:1;font-size:13px;font-weight:500">${a.name}</span><span class="badge b-blue">${a.category||'未分类'}</span></div>`).join('')}${archList.length===0?'<div class="empty"><div class="empty-icon">🗂</div>暂无数据</div>':''}<div style="margin-top:10px"><button class="btn btn-outline btn-sm" onclick="goPage('mat-arch')">查看全部物料档案 →</button></div></div>`;
+  } catch(e) { toast('加载失败: '+e.message,'error'); }
+}
+
+// ══════════════════════════════════════════════════
+// 物料治理
+// ══════════════════════════════════════════════════
+let govData=[], govResults={success:[],fail:[]};
+async function pgMatGov() {
+  const s = await GET('/settings').catch(()=>({mat_code_prefix:'MAT',mat_code_digits:'6',mat_extract_prompt:''}));
+  $('content').innerHTML = `
+  <h1 class="pt">🔬 物料治理</h1>
+  <div class="steps"><div class="step active" id="s1"><div class="step-num">1</div><span>上传文件</span></div><div class="step-line"></div><div class="step" id="s2"><div class="step-num">2</div><span>AI提取核心词</span></div><div class="step-line"></div><div class="step" id="s3"><div class="step-num">3</div><span>查看结果</span></div><div style="flex:1"></div><button class="btn btn-outline btn-sm" onclick="showGovHistory()">📜 治理历史</button></div>
+  <div id="gov-panel"></div>`;
+   govData=[]; govResults={success:[],fail:[]};
+  const prompt = s.mat_extract_prompt || '提取物料名称的核心词：只保留最基础的品类级核心词（如“灯管”、“扳手”、“螺栓”），去掉所有修饰属性，包括规格、型号、品牌、材质、工艺，以及功能性修饰语（如“LED”、“一体”、“紫外线”、“活口”等）。核心词必须是具体的物料类别，不能仅有宽泛的泛指词（如只提取出“配件”、“零件”、“材料”等则视为失败）。如果治理失败，请返回格式：\'FAIL:失败原因\'，否则只返回品类级核心词。';
+  $('gov-panel').innerHTML = `
+  <div class="grid2">
+    <div class="card">
+      <h2>📁 上传原始物料文件</h2>
+      <div class="upload-zone" id="uzone" onclick="$('mat-finp').click()">
+        <div style="font-size:40px;margin-bottom:10px">📂</div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:6px">点击或拖拽上传 CSV 文件</div>
+        <div style="font-size:12px;color:var(--text3)">列名建议：编码、名称、规格型号 · 最大 10,000 行</div>
+      </div>
+      <input type="file" id="mat-finp" accept=".csv" style="display:none" onchange="onGovFile(this)">
+      <div id="gov-finfo" style="display:none;margin-top:12px"></div>
+      <div class="alert alert-blue" style="margin-top:12px">💡 <button class="btn btn-outline btn-sm" onclick="dlTpl('物料导入模板.csv',['编码','名称','规格型号'],[['RM001','304不锈钢弯头DN50','DN50 2寸']])">下载导入模板</button></div>
+    </div>
+    <div class="card">
+      <h2>⚙ 治理规则配置</h2>
+      <div class="form-group"><label>物料编码前缀</label><input type="text" id="cp" value="${s.mat_code_prefix||'MAT'}"></div>
+      <div class="form-group"><label>编码流水号位数</label><input type="number" id="cd" value="${s.mat_code_digits||6}" min="4" max="10"></div>
+      <div class="form-group"><label>编码预览</label><div style="font-family:monospace;font-size:13px;color:var(--blue);padding:8px 12px;background:var(--blue-light);border-radius:6px;border:1px solid #bfdbfe" id="cprev">${s.mat_code_prefix||'MAT'}${'0'.repeat((parseInt(s.mat_code_digits)||6)-1)}1</div></div>
+      <div class="form-group"><label>AI 提取提示词</label><textarea id="eprompt" style="height:80px;resize:none;font-size:12px">${prompt}</textarea></div>
+      <button class="btn btn-outline btn-sm" onclick="saveGovRule()">💾 保存规则</button>
+    </div>
+  </div>`;
+  const uz=$('uzone');
+  uz.ondragover=e=>{e.preventDefault();uz.classList.add('drag-over')};
+  uz.ondragleave=()=>uz.classList.remove('drag-over');
+  uz.ondrop=e=>{e.preventDefault();uz.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)uploadGovFile(f)};
+  $('cp').oninput=$('cd').oninput=()=>{
+    const p=$('cp').value||'MAT',d=parseInt($('cd').value)||6;
+    $('cprev').textContent=p+'0'.repeat(d-1)+'1 · '+p+'0'.repeat(d-1)+'2';
+  };
+}
+async function saveGovRule(){
+  await POST('/settings',{mat_code_prefix:$('cp').value,mat_code_digits:$('cd').value,mat_extract_prompt:$('eprompt').value});
+  toast('规则已保存');
+}
+function onGovFile(inp){ if(inp.files[0]) { window._govFile = inp.files[0]; uploadGovFile(inp.files[0]); } }
+async function uploadGovFile(file){
+  if(!file.name.toLowerCase().endsWith('.csv')){toast('请上传CSV文件','error');return;}
+  const fd=new FormData(); fd.append('file',file);
+  try{
+    const r=await UPLOAD('/upload/csv',fd);
+    govData=r.rows;
+    $('gov-finfo').style.display='block';
+    $('gov-finfo').innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--green-light);border-radius:8px;border:1px solid #a7f3d0"><span style="font-size:22px">📄</span><div style="flex:1"><div style="font-size:13px;font-weight:500">${file.name}</div><div style="font-size:12px;color:var(--text3)">${r.count} 行 · 列：${r.columns.join('、')}</div></div><span class="badge b-green">就绪</span></div><div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-outline btn-sm" onclick="pgMatGov()">重新上传</button><button class="btn btn-primary" onclick="startGovExtract()">▶ 开始 AI 提取</button></div>`;
+  }catch(e){toast('上传失败：'+e.message,'error');}
+}
+async function startGovExtract(){
+  if(!govData.length){toast('请先上传文件','error');return;}
+  $('s1').className='step done';$('s2').className='step active';
+  $('gov-panel').innerHTML=`<div class="card"><h2>⏳ AI 正在提取核心词...</h2><div class="progress-bar"><div class="progress-fill" id="gprog" style="width:0%;background:linear-gradient(90deg,var(--blue),var(--cyan))"></div></div><div style="font-size:13px;color:var(--text3);margin-top:10px" id="gstatus">准备中...</div><div style="margin-top:12px;max-height:200px;overflow-y:auto;font-size:12px;background:var(--bg3);border-radius:8px;padding:10px;line-height:1.8" id="glog"></div></div>`;
+  const nameKey=Object.keys(govData[0]).find(k=>k.includes('名')||k.toLowerCase().includes('name'))||Object.keys(govData[0])[1]||'名称';
+  const codeKey=Object.keys(govData[0]).find(k=>k.includes('编')||k.toLowerCase().includes('code'))||Object.keys(govData[0])[0]||'编码';
+  const specKey=Object.keys(govData[0]).find(k=>k.includes('规')||k.includes('型'))||Object.keys(govData[0])[2]||'';
+  const prompt=await GET('/settings').then(s=>s.mat_extract_prompt).catch(()=>'提取物料名称的核心词：只保留最基础的品类级核心词（如\'灯管\'、\'扳手\'、\'螺栓\'），去掉所有修饰属性，包括规格、型号、品牌、材质、工艺，以及功能性修饰语（如\'LED\'、\'一体\'、\'紫外线\'、\'活口\'等）。核心词必须是具体的物料类别，不能仅有宽泛的泛指词（如只提取出\'配件\'、\'零件\'、\'材料\'等则视为失败）。如果治理失败，请返回格式：\'FAIL:失败原因\'，否则只返回品类级核心词。');
+  const success=[],fail=[];
+  const batchSize=5;
+  const log=$('glog');
+  
+  const archMap={};
+  let tempNewArch=[], tempNewRaw=[];
+  let counter=0;
+  const codeResp=await GET('/gen-mat-code').catch(()=>({code:'ML000001'}));
+  const prefix=codeResp.code.replace(/\d+$/,'');
+  const digits=(codeResp.code.replace(prefix,'').length)||6;
+  const startNum=parseInt(codeResp.code.replace(prefix,''))||1;
+
+  for(let i=0;i<govData.length;i+=batchSize){
+    const batch=govData.slice(i,i+batchSize);
+    const pct=Math.round((i/govData.length)*100);
+    $('gprog').style.width=pct+'%';
+    $('gstatus').textContent=`处理第 ${i+1}–${Math.min(i+batchSize,govData.length)} 条，共 ${govData.length} 条...`;
+    const names=batch.map(r=>r[nameKey]||'').filter(Boolean);
+    if(!names.length){batch.forEach(r=>fail.push({...r,_name:r[nameKey],_code:r[codeKey],_spec:r[specKey]||'',failReason:'名称为空'}));continue;}
+    try{
+      const resp=await POST('/ai/chat',{systemPrompt:`你是物料名称提取专家。${prompt}。请对以下物料名称列表，每行提取核心词，只返回JSON数组格式，如["核心词1","核心词2"]，数组长度必须与输入行数一致。不要任何其他内容。`,userPrompt:names.join('\n')});
+      let extracted;
+      try{extracted=JSON.parse(resp.content.replace(/```json?|```/g,'').trim());}catch{extracted=resp.content.split('\n').map(s=>s.trim()).filter(Boolean);}
+      batch.forEach((r,idx)=>{
+        const core=extracted[idx]||'';
+        const rawName=r[nameKey]||'';
+        const rawCode=r[codeKey]||'';
+        const rawSpec=r[specKey]||'';
+        if(core && core.startsWith('FAIL:')){
+          const reason = core.replace('FAIL:','').trim();
+          fail.push({...r,_name:rawName,_code:rawCode,_spec:rawSpec,failReason:reason});
+          log.innerHTML+=`<span style="color:var(--red)">✗ ${rawName} - ${reason}</span><br>`;
+        }else if(core&&core!=='null'&&core!=='undefined'){
+          const cword=core.trim();
+          success.push({...r,_name:rawName,_code:rawCode,_spec:rawSpec,_core:cword});
+          log.innerHTML+=`<span style="color:var(--green)">✓ ${rawName} → <strong>${cword}</strong></span><br>`;
+          if(!archMap[cword]){
+            const num=startNum+counter++;
+            archMap[cword]={id:genId(),code:prefix+String(num).padStart(digits,'0'),name:cword,synonyms:'',raw_count:0,created_at:Date.now()};
+          }
+          if(rawName!==cword){
+            const syns=archMap[cword].synonyms?archMap[cword].synonyms.split(','):[]; 
+            if(!syns.includes(rawName)){syns.push(rawName);archMap[cword].synonyms=syns.join(',');}
+          }
+          archMap[cword].raw_count++;
+          tempNewRaw.push({id:genId(),code:rawCode||'RM'+genId(),name:rawName,spec:rawSpec,new_code:archMap[cword].code,new_name:cword,status:'已治理',source:'CSV导入',created_at:Date.now()});
+          if(!tempNewArch.find(a=>a.name===cword)) tempNewArch.push(archMap[cword]);
+        }else{
+          fail.push({...r,_name:rawName,_code:rawCode,_spec:rawSpec,failReason:'AI提取失败'});
+          log.innerHTML+=`<span style="color:var(--red)">✗ ${rawName} - 提取失败</span><br>`;
+        }
+      });
+      if(tempNewRaw.length >= 50){
+        await POST('/mat-gov/save-results',{archive:Object.values(archMap),rawMats:tempNewRaw}).catch(console.error);
+        tempNewRaw=[];
+        log.innerHTML+=`<span style="color:var(--blue)">💾 已自动保存阶段治理结果 (${success.length} 条)</span><br>`;
+      }
+    }catch(err){
+      batch.forEach(r=>fail.push({...r,_name:r[nameKey],_code:r[codeKey],_spec:r[specKey]||'',failReason:err.message}));
+      log.innerHTML+=`<span style="color:var(--red)">✗ 节点失败: ${err.message}</span><br>`;
+    }
+    log.scrollTop=log.scrollHeight;
+    await new Promise(r=>setTimeout(r,100));
+  }
+  govResults={success,fail};
+  $('gprog').style.width='100%';
+  const finalArch=Object.values(archMap);
+  const summary = { total: govData.length, success: success.length, fail: fail.length, newArch: finalArch.length };
+  await POST('/mat-gov/save-results',{
+    archive: finalArch, 
+    rawMats: tempNewRaw, 
+    filename: window._govFile?.name || '未知文件',
+    total: summary.total, success: summary.success, fail: summary.fail, newArch: summary.newArch,
+    results: { success: success.map(s=>({code:s._code, name:s._name, core:s._core})), fail: fail.map(f=>({code:f._code, name:f._name, reason:f.failReason})) }
+  }).catch(e=>toast('保存失败：'+e.message,'error'));
+  $('s2').className='step done';$('s3').className='step active';
+  $('gov-panel').innerHTML=`<div class="card"><h2>📊 提取完成</h2><div class="grid4" style="margin-bottom:16px">
+    <div class="stat-card" style="border-top:3px solid var(--blue)"><div style="font-size:12px;color:var(--text3)">处理总数</div><div class="stat-num" style="color:var(--blue)">${govData.length}</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--green)"><div style="font-size:12px;color:var(--text3)">提取成功</div><div class="stat-num" style="color:var(--green)">${success.length}</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--red)"><div style="font-size:12px;color:var(--text3)">提取失败</div><div class="stat-num" style="color:var(--red)">${fail.length}</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--amber)"><div style="font-size:12px;color:var(--text3)">新增物料档案</div><div class="stat-num" style="color:var(--amber)">${newArch.length}</div></div>
+  </div>
+  <div class="alert alert-green">✓ 成功提取的物料已自动去重合并，写入物料档案及原始物料库</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    ${fail.length>0?`<button class="btn btn-outline btn-sm" onclick="dlTpl('提取失败明细.csv',['原始编码','原始名称','规格型号','失败原因'],govResults.fail.map(r=>[r._code||'',r._name||'',r._spec||'',r.failReason||'']))">⬇ 下载失败明细</button>`:''}
+    <button class="btn btn-outline btn-sm" onclick="dlNewArch()">⬇ 下载新物料明细</button>
+    <button class="btn btn-outline btn-sm" onclick="dlMatMapping()">⬇ 下载映射表</button>
+    <button class="btn btn-primary btn-sm" onclick="goPage('mat-arch')">查看物料档案 →</button>
+  </div>
+  ${success.length>0?`<div style="margin-top:16px"><h3>提取结果预览（前10条）</h3><div class="tbl-wrap"><table><thead><tr><th>原始名称</th><th>提取核心词</th></tr></thead><tbody>${success.slice(0,10).map(r=>`<tr><td>${r._name}</td><td style="color:var(--green);font-weight:600">${r._core}</td></tr>`).join('')}</tbody></table></div></div>`:''}
+  </div>`;
+}
+
+async function showGovHistory() {
+  openMd(`<div class="modal-title">📜 物料治理历史</div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn btn-red btn-sm" onclick="clearGovHistory()">🗑 清空全部历史</button></div>
+  <div id="hist-list" style="max-height:400px;overflow-y:auto"><div class="empty">加载中...</div></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">关闭</button></div>`);
+  try {
+    const tasks = await GET('/mat-gov/tasks');
+    const el = $('hist-list');
+    if (!tasks.length) { el.innerHTML = '<div class="empty">暂无历史记录</div>'; return; }
+    el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>治理时间</th><th>文件名</th><th>总数</th><th>成功率</th><th>操作</th></tr></thead><tbody>
+    ${tasks.map(t=>`<tr><td>${fmtDate(t.created_at)}</td><td style="font-size:12px">${t.filename}</td><td>${t.total_rows}</td><td style="color:var(--green)">${Math.round((t.success_count/t.total_rows)*100)}%</td><td style="display:flex;gap:5px"><button class="btn btn-outline btn-sm" onclick="dlTaskResults('${t.id}')">下载</button><button class="btn btn-red btn-sm" onclick="delGovTask('${t.id}')">删除</button></td></tr>`).join('')}
+    </tbody></table></div>`;
+  } catch(e) { toast('记录加载失败','error'); }
+}
+
+async function delGovTask(id) {
+  if(!confirm('确定删除该条治理记录吗？')) return;
+  try {
+    await API('DELETE', '/mat-gov/tasks/' + id);
+    toast('已删除');
+    showGovHistory();
+  } catch(e) { toast('删除失败: ' + e.message, 'error'); }
+}
+
+async function clearGovHistory() {
+  if(!confirm('确定清空所有治理历史吗？')) return;
+  try {
+    await POST('/mat-gov/tasks/clear-all');
+    toast('已清空');
+    showGovHistory();
+  } catch(e) { toast('清空失败: ' + e.message, 'error'); }
+}
+
+async function dlTaskResults(id) {
+  const t = await GET('/mat-gov/tasks/' + id);
+  const rows = t.results.success.map(r => [r.code, r.name, r.core, '成功', '']);
+  rows.push(...t.results.fail.map(r => [r.code, r.name, '', '失败', r.reason]));
+  exportCSV(`治理结果_${t.filename}.csv`, ['原始编码','原始名称','核心词','状态','失败原因'], rows);
+  toast('已下载');
+}
+async function dlNewArch(){ const d=await GET('/mat-archive?q='); exportCSV('新物料明细.csv',['物料编码','物料名称','所属品类'],d.map(a=>[a.code,a.name,a.category])); toast('已下载'); }
+async function dlMatMapping(){ const d=await GET('/mat-raw?q='); exportCSV('原始物料映射表.csv',['原物料编码','原物料名称','新物料编码','新物料名称','状态'],d.map(r=>[r.code,r.name,r.new_code||'—',r.new_name||'—',r.status])); toast('已下载'); }
+function dlTpl(filename,headers,rows){ exportCSV(filename,headers,rows); }
+
+// ══════════════════════════════════════════════════
+// 通用列表页生成器
+// ══════════════════════════════════════════════════
+function makeListPage({title, apiPath, columns, searchPlaceholder, filterOptions, filterField, actions, rowRenderer, extraBtns, usePagination}) {
+  let currPage = 1, pageSize = 100;
+  $('content').innerHTML = `
+  <h1 class="pt">${title}</h1>
+  <div class="fg">
+    <div class="fi"><label>搜索</label><input type="text" id="ls-q" placeholder="${searchPlaceholder||'搜索...'}" style="width:200px" oninput="loadList(1)"></div>
+    ${filterOptions?`<div class="fi"><label>筛选</label><select id="ls-f" onchange="loadList(1)"><option>全部</option>${filterOptions.map(o=>`<option>${o}</option>`).join('')}</select></div>`:''}
+    <button class="btn btn-outline" onclick="loadList(1)">🔍</button>
+    <div style="flex:1"></div>
+    ${usePagination?`<button class="btn btn-red btn-sm" onclick="clearAllData('${apiPath}')">⚠️ 一键删除所有</button><button class="btn btn-outline btn-sm" onclick="delSelected('${apiPath}')">批量删除勾选</button>`:''}
+    ${extraBtns||''}
+  </div>
+  <div id="list-body"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">
+    <div id="list-foot" style="font-size:12px;color:var(--text3)"></div>
+    ${usePagination?`<div id="list-pager" style="display:flex;gap:5px"></div>`:''}
+  </div>`;
+
+  window.loadList = async (page) => {
+    if(page) currPage = page;
+    const q = $('ls-q')?.value||'';
+    const f = $('ls-f')?.value||'全部';
+    let url = `${apiPath}?q=${encodeURIComponent(q)}`;
+    if(f!=='全部'&&filterField) url+=`&filterField=${filterField}&filter=${encodeURIComponent(f)}`;
+    if(usePagination) url += `&page=${currPage}&limit=${pageSize}`;
+    
+    try{
+      const res = await GET(url);
+      const rows = usePagination ? res.data : res;
+      const total = usePagination ? res.total : rows.length;
+      const el=$('list-body');if(!el)return;
+      el.innerHTML=`<div class="tbl-wrap"><table><thead><tr>${usePagination?`<th><input type="checkbox" id="sel-all" onclick="toggleAll(this.checked)"></th>`:''}${columns.map(c=>`<th>${c.label}</th>`).join('')}<th>操作</th></tr></thead><tbody>${rows.length===0?`<tr><td colspan="${columns.length+(usePagination?2:1)}"><div class="empty"><div class="empty-icon">📋</div>暂无数据</div></td></tr>`:rows.map(r=>rowRenderer(r, usePagination)).join('')}</tbody></table></div>`;
+      $('list-foot').textContent=`共 ${total} 条${usePagination?` · 当前第 ${currPage} 页`:''}`;
+      if(usePagination) renderPager(total);
+    }catch(e){toast('加载失败：'+e.message,'error');}
+  };
+
+  function renderPager(total) {
+    const totalPages = Math.ceil(total / pageSize);
+    let html = `<button class="btn btn-outline btn-sm" ${currPage<=1?'disabled':''} onclick="loadList(${currPage-1})">上一页</button>`;
+    html += `<span style="display:flex;align-items:center;padding:0 10px;font-size:12px">${currPage} / ${totalPages || 1}</span>`;
+    html += `<button class="btn btn-outline btn-sm" ${currPage>=totalPages?'disabled':''} onclick="loadList(${currPage+1})">下一页</button>`;
+    $('list-pager').innerHTML = html;
+  }
+
+  window.toggleAll = (chk) => document.querySelectorAll('.row-sel').forEach(c => c.checked = chk);
+
+  window.delSelected = async (path) => {
+    const ids = Array.from(document.querySelectorAll('.row-sel:checked')).map(c => c.value);
+    if(!ids.length) return toast('请先勾选数据','info');
+    if(!confirm(`确定删除选中的 ${ids.length} 条数据吗？`)) return;
+    try {
+      await POST(path + '/bulk-delete', { ids });
+      toast('已批量删除');
+      loadList();
+    } catch(e) { toast('删除失败: ' + e.message, 'error'); }
+  };
+
+  window.clearAllData = async (path) => {
+    if(!confirm('🚨 确定要删除列表中的所有数据吗？此操作不可恢复！')) return;
+    try {
+      await POST(path + '/clear-all');
+      toast('已清空全部数据');
+      loadList(1);
+    } catch(e) { toast('清空失败: ' + e.message, 'error'); }
+  };
+
+  window.loadList(1);
+}
+
+// ══════════════════════════════════════════════════
+// 原始物料
+// ══════════════════════════════════════════════════
+function pgMatRaw(){
+  makeListPage({
+    title:'📋 原始物料', apiPath:'/mat-raw', searchPlaceholder:'搜索编码/名称...', usePagination:true,
+    filterOptions:['已治理','未治理'], filterField:'status',
+    columns:[{label:'编码'},{label:'名称'},{label:'规格'},{label:'新物料编码'},{label:'新物料名称'},{label:'状态'},{label:'来源'}],
+    extraBtns:`<button class="btn btn-outline btn-sm" onclick="dlTpl('原始物料模板.csv',['编码','名称','规格型号'],[['RM001','304不锈钢弯头DN50','DN50 2寸']])">⬇ 模板</button>
+    <button class="btn btn-outline btn-sm" onclick="$('rimport').click()">⬆ 导入</button>
+    <input type="file" id="rimport" accept=".csv" style="display:none" onchange="importRaw(this,'mat-raw','名称',['编码','名称','规格型号'],['code','name','spec'])">
+    <button class="btn btn-primary btn-sm" onclick="goPage('mat-gov')">▶ 物料治理</button>
+    <button class="btn btn-primary btn-sm" onclick="openAddRaw()">+ 新增</button>
+    <button class="btn btn-outline btn-sm" onclick="dlMatMapping()">⬇ 导出</button>`,
+    rowRenderer: (r, usePagination)=>`<tr>${usePagination?`<td><input type="checkbox" class="row-sel" value="${r.id}"></td>`:''}<td style="font-family:monospace;color:var(--blue)">${r.code}</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</td><td style="color:var(--text3)">${r.spec||'—'}</td><td style="font-family:monospace;color:var(--text3)">${r.new_code||'—'}</td><td>${r.new_name||'—'}</td><td><span class="badge ${r.status==='已治理'?'b-green':'b-amber'}">${r.status}</span></td><td style="color:var(--text3);font-size:12px">${r.source||'—'}</td><td style="display:flex;gap:5px"><button class="btn btn-outline btn-sm" onclick="editRaw('${r.id}','${r.code}','${r.name.replace(/'/g,'&#39;')}','${r.spec||''}')">编辑</button><button class="btn btn-red btn-sm" onclick="delItem('/mat-raw','${r.id}')">删除</button></td></tr>`
+  });
+}
+function openAddRaw(){
+  openMd(`<div class="modal-title">➕ 新增原始物料</div>
+  <div class="form-group"><label>编码</label><input type="text" id="na1" placeholder="如 RM001"></div>
+  <div class="form-group"><label>名称</label><input type="text" id="na2" placeholder="物料原始名称"></div>
+  <div class="form-group"><label>规格型号</label><input type="text" id="na3" placeholder="如 DN50 2寸"></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">取消</button><button class="btn btn-primary" onclick="saveNewRaw()">保存</button></div>`);
+}
+async function saveNewRaw(){
+  const name=$('na2').value.trim();if(!name){toast('请填写名称','error');return;}
+  await POST('/mat-raw',{code:$('na1').value.trim(),name,spec:$('na3').value.trim(),status:'未治理',source:'手动录入'});
+  closeMd();loadList();toast('已新增');
+}
+function editRaw(id,code,name,spec){
+  openMd(`<div class="modal-title">✏️ 编辑原始物料</div>
+  <div class="form-group"><label>编码</label><input type="text" id="er1" value="${code}"></div>
+  <div class="form-group"><label>名称</label><input type="text" id="er2" value="${name}"></div>
+  <div class="form-group"><label>规格</label><input type="text" id="er3" value="${spec}"></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">取消</button><button class="btn btn-primary" onclick="saveEditRaw('${id}')">保存</button></div>`);
+}
+async function saveEditRaw(id){
+  await PUT('/mat-raw/'+id,{code:$('er1').value,name:$('er2').value,spec:$('er3').value});
+  closeMd();loadList();toast('已保存');
+}
+
+// ══════════════════════════════════════════════════
+// 物料档案
+// ══════════════════════════════════════════════════
+function pgMatArch(){
+  makeListPage({
+    title:'🗂 物料档案进度', apiPath:'/mat-archive', searchPlaceholder:'搜索编码/名称...', usePagination:true,
+    columns:[{label:'物料编码'},{label:'物料名称'},{label:'所属品类'},{label:'关联数'},{label:'相似物料'},{label:'操作'}],
+    extraBtns:`<button class="btn btn-primary btn-sm" onclick="openAddArch()">+ 新增</button><button class="btn btn-outline btn-sm" onclick="exportArch()">⬇ 导出</button>`,
+    rowRenderer: (a, usePagination)=>`<tr>${usePagination?`<td><input type="checkbox" class="row-sel" value="${a.id}"></td>`:''}<td style="font-family:monospace;color:var(--blue)">${a.code}</td><td style="font-weight:600">${a.name}</td><td>${a.category?`<span class="badge b-blue">${a.category}</span>`:'—'}</td><td style="text-align:center">${a.raw_count||0}</td><td><span style="${a.similar_count > 0 ? 'color:var(--red);font-weight:600' : ''}">${a.similar_count || 0}</span>${a.similar_count > 0 ? ` <button class="btn btn-outline btn-sm" style="padding:2px 6px;font-size:11px;margin-left:4px" onclick="showSimilar('${a.id}','${a.name.replace(/'/g,'&#39;')}')">查看</button>` : ''}</td><td style="display:flex;gap:5px"><button class="btn btn-outline btn-sm" onclick="editArch('${a.id}','${a.code}','${a.name.replace(/'/g,'&#39;')}','${a.category||''}')">编辑</button><button class="btn btn-red btn-sm" onclick="delItem('/mat-archive','${a.id}')">删除</button></td></tr>`
+  });
+}
+async function openAddArch(){
+  const {code}=await GET('/gen-mat-code');
+  openMd(`<div class="modal-title">➕ 新增物料档案</div>
+  <div class="form-group"><label>物料编码</label><input type="text" id="aa1" value="${code}"></div>
+  <div class="form-group"><label>物料名称（核心词）</label><input type="text" id="aa2"></div>
+  <div class="form-group"><label>所属品类</label><input type="text" id="aa4"></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">取消</button><button class="btn btn-primary" onclick="saveNewArch()">保存</button></div>`);
+}
+async function saveNewArch(){
+  const name=$('aa2').value.trim();if(!name){toast('请填写物料名称','error');return;}
+  await POST('/mat-archive',{code:$('aa1').value,name,category:$('aa4').value,raw_count:0});
+  closeMd();loadList();toast('已新增');
+}
+function editArch(id,code,name,cat){
+  openMd(`<div class="modal-title">✏️ 编辑物料档案</div>
+  <div class="form-group"><label>物料编码</label><input type="text" id="ea1" value="${code}"></div>
+  <div class="form-group"><label>物料名称</label><input type="text" id="ea2" value="${name}"></div>
+  <div class="form-group"><label>所属品类</label><input type="text" id="ea4" value="${cat}"></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">取消</button><button class="btn btn-primary" onclick="saveEditArch('${id}')">保存</button></div>`);
+}
+async function saveEditArch(id){ await PUT('/mat-archive/'+id,{code:$('ea1').value,name:$('ea2').value,category:$('ea4').value}); closeMd();loadList();toast('已保存'); }
+async function exportArch(){ const d=await GET('/mat-archive?q='); exportCSV('物料档案.csv',['物料编码','物料名称','相似物料'],d.map(a=>[a.code,a.name,a.similar_text])); toast('已导出'); }
+
+async function showSimilar(id, name) {
+  openMd(`<div class="modal-title">🔍 寻找与 "${name}" 相似的物料</div>
+  <div id="sim-list" style="max-height:300px;overflow-y:auto"><div class="empty">正在计算相似度...</div></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">取消</button><button class="btn btn-primary" id="btn-merge" disabled onclick="doMerge('${id}')">合并选中项</button></div>`);
+  try {
+    const list = await GET(`/mat-archive/${id}/similar`);
+    const el = $('sim-list');
+    if (!list.length) { el.innerHTML = '<div class="empty">未发现相似度 > 0.8 的物料</div>'; return; }
+    el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>选择</th><th>编码</th><th>名称</th><th>相似度</th></tr></thead><tbody>
+    ${list.map(a=>`<tr><td><input type="checkbox" class="sim-sel" value="${a.id}" onchange="updateMergeBtn()"></td><td>${a.code}</td><td>${a.name}</td><td>${Math.round(a.score*100)}%</td></tr>`).join('')}
+    </tbody></table></div>`;
+  } catch(e) { toast('加载失败','error'); }
+}
+
+function updateMergeBtn() {
+  const sels = document.querySelectorAll('.sim-sel:checked');
+  $('btn-merge').disabled = sels.length === 0;
+}
+
+async function doMerge(targetId) {
+  const sourceIds = Array.from(document.querySelectorAll('.sim-sel:checked')).map(cb => cb.value);
+  if (!confirm(`确定将选中的 ${sourceIds.length} 个物料合并到当前物料吗？此操作不可撤销，关联的原始物料将自动跳转。`)) return;
+  try {
+    await POST('/mat-archive/merge', { targetId, sourceIds });
+    toast('合并成功');
+    closeMd();
+    loadList();
+  } catch(e) { toast('合并失败: ' + e.message, 'error'); }
+}
+
+// ══════════════════════════════════════════════════
+// 品类目录
+// ══════════════════════════════════════════════════
+function pgCatDir(){
+  makeListPage({
+    title:'🌲 品类目录', apiPath:'/categories', searchPlaceholder:'搜索品类...', usePagination:true,
+    filterOptions:['正常','异常'], filterField:'status',
+    columns:[{label:'一级'},{label:'二级'},{label:'三级'},{label:'四级（末级）'},{label:'品类关键属性'},{label:'状态'}],
+    extraBtns:`<button class="btn btn-outline btn-sm" onclick="batchAiCatAttrs()">✨ AI批量生成属性</button>
+    <button class="btn btn-outline btn-sm" onclick="showCatAttrRule()">⚙ AI规则配置</button>
+    <button class="btn btn-outline btn-sm" onclick="exportCategories()">⬇ 导出</button>
+    <button class="btn btn-outline btn-sm" onclick="dlTpl('品类模板.csv',['品类编码','一级品类','二级品类','三级品类','四级品类'],[['010101001','设备及备件','机械设备','泵类','离心泵,螺杆泵']])">⬇ 模板</button>
+    <button class="btn btn-outline btn-sm" onclick="$('catimport').click()">⬆ 上传CSV</button>
+    <input type="file" id="catimport" accept=".csv" style="display:none" onchange="importCats(this)">
+    <button class="btn btn-primary btn-sm" onclick="openAddCat()">+ 新增</button>`,
+    rowRenderer:(c, usePagination)=>{
+      const fmt=(cd,nm)=>`<div style="font-family:monospace;font-size:11px;color:var(--text3)">${cd}</div><div style="font-weight:500">${nm}</div>`;
+      const attrsHtml = c.key_attrs
+        ? `<div style="display:flex;flex-wrap:wrap;gap:3px;max-width:240px">${c.key_attrs.split(',').map(a=>`<span class="badge b-cyan" style="font-size:11px">${a.trim()}</span>`).join('')}</div>`
+        : '<span style="color:var(--text3);font-size:12px">—</span>';
+      return `<tr style="${c.status==='异常'?'background:#fff8f8':''}">
+        ${usePagination?`<td><input type="checkbox" class="row-sel" value="${c.id}" data-l1="${(c.l1||'').replace(/"/g,'&quot;')}" data-l2="${(c.l2||'').replace(/"/g,'&quot;')}" data-l3="${(c.l3||'').replace(/"/g,'&quot;')}" data-l4="${(c.l4||'').replace(/"/g,'&quot;')}"></td>`:''}
+        <td>${fmt(c.code.slice(0,2),c.l1)}</td>
+        <td>${fmt(c.code.slice(0,4),c.l2)}</td>
+        <td>${fmt(c.code.slice(0,7),c.l3)}</td>
+        <td>${fmt(c.code,c.l4)}</td>
+        <td>${attrsHtml}</td>
+        <td><span class="badge ${c.status==='正常'?'b-green':'b-red'}">${c.status==='正常'?'正常':'⚠ 异常'}</span></td>
+        <td style="display:flex;gap:5px;flex-wrap:nowrap"><button class="btn btn-outline btn-sm" onclick="aiGenSingleAttr('${c.id}','${(c.l1||'').replace(/'/g,'&#39;')}','${(c.l2||'').replace(/'/g,'&#39;')}','${(c.l3||'').replace(/'/g,'&#39;')}','${(c.l4||'').replace(/'/g,'&#39;')}')">✨AI</button><button class="btn btn-outline btn-sm" onclick="editCatAttrs('${c.id}','${(c.key_attrs||'').replace(/'/g,'&#39;')}','${(c.l4||'').replace(/'/g,'&#39;')}')">属性</button><button class="btn btn-outline btn-sm" onclick="editCat('${c.id}','${c.code}','${(c.l1||'').replace(/'/g,'&#39;')}','${(c.l2||'').replace(/'/g,'&#39;')}','${(c.l3||'').replace(/'/g,'&#39;')}','${(c.l4||'').replace(/'/g,'&#39;')}')">编辑</button><button class="btn btn-red btn-sm" onclick="delItem('/categories','${c.id}')">删除</button></td></tr>`;
+    }
+  });
+}
+
+// AI单条生成品类关键属性
+async function aiGenSingleAttr(id, l1, l2, l3, l4) {
+  toast('正在AI生成属性...','info');
+  try {
+    const prompt = (await GET('/settings').catch(()=>({}))).cat_attr_prompt || '你是品类数据治理专家。根据给定的品类层级路径（一级>二级>三级>四级），为该末级品类生成4-5个关键SKU属性和2个补充属性。关键属性是决定SKU唯一性的核心维度（如规格、型号、材质、功率等），补充属性为辅助描述。只返回属性名称，用逗号分隔。不要任何其他内容。';
+    const resp = await POST('/ai/chat', {
+      systemPrompt: prompt,
+      userPrompt: `品类路径：${l1} > ${l2} > ${l3} > ${l4}\n请为该末级品类生成关键SKU属性和补充属性，用逗号分隔返回属性名称。`
+    });
+    const attrs = resp.content.replace(/```[^`]*```/g,'').replace(/\n/g,',').replace(/、/g,',').split(',').map(s=>s.trim()).filter(Boolean).join(',');
+    await PUT('/categories/'+id, {key_attrs: attrs});
+    toast('属性已生成并保存');
+    loadList();
+  } catch(e) { toast('AI生成失败: '+e.message, 'error'); }
+}
+
+// AI批量生成品类关键属性
+async function batchAiCatAttrs() {
+  const checkboxes = document.querySelectorAll('.row-sel:checked');
+  if (!checkboxes.length) { toast('请先勾选需要生成属性的品类','info'); return; }
+  if (!confirm(`确定为选中的 ${checkboxes.length} 条品类AI生成关键属性吗？`)) return;
+
+  const items = Array.from(checkboxes).map(cb => ({
+    id: cb.value,
+    l1: cb.dataset.l1 || '',
+    l2: cb.dataset.l2 || '',
+    l3: cb.dataset.l3 || '',
+    l4: cb.dataset.l4 || ''
+  }));
+
+  openMd(`<div class="modal-title">✨ AI批量生成品类关键属性</div>
+  <div class="progress-bar"><div class="progress-fill" id="cat-ai-prog" style="width:0%;background:linear-gradient(90deg,var(--blue),var(--cyan))"></div></div>
+  <div style="font-size:13px;color:var(--text3);margin-top:10px" id="cat-ai-status">准备中...</div>
+  <div style="margin-top:12px;max-height:250px;overflow-y:auto;font-size:12px;background:var(--bg3);border-radius:8px;padding:10px;line-height:1.8" id="cat-ai-log"></div>
+  <div class="modal-footer"><button class="btn btn-outline" id="cat-ai-close" disabled onclick="closeMd();loadList()">关闭</button></div>`);
+
+  const prompt = (await GET('/settings').catch(()=>({}))).cat_attr_prompt || '你是品类数据治理专家。根据给定的品类层级路径（一级>二级>三级>四级），为该末级品类生成4-5个关键SKU属性和2个补充属性。只返回属性名称，用逗号分隔。不要任何其他内容。';
+  const log = $('cat-ai-log');
+  const batchSize = 5;
+  const updates = [];
+
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const pct = Math.round((i / items.length) * 100);
+    $('cat-ai-prog').style.width = pct + '%';
+    $('cat-ai-status').textContent = `处理第 ${i+1}–${Math.min(i+batchSize, items.length)} 条，共 ${items.length} 条...`;
+
+    const inputText = batch.map(it => `${it.l1} > ${it.l2} > ${it.l3} > ${it.l4}`).join('\n');
+    try {
+      const resp = await POST('/ai/chat', {
+        systemPrompt: prompt + '\n\n请对以下多个品类路径分别生成属性，每行一个品类的属性（逗号分隔），返回的行数必须与输入行数一致。不要返回其他任何内容。',
+        userPrompt: inputText
+      });
+      const lines = resp.content.replace(/```[^`]*```/g,'').trim().split('\n').map(s=>s.trim()).filter(Boolean);
+      batch.forEach((it, idx) => {
+        const attrs = (lines[idx] || '').replace(/、/g,',').split(',').map(s=>s.trim()).filter(Boolean).join(',');
+        if (attrs) {
+          updates.push({id: it.id, key_attrs: attrs});
+          log.innerHTML += `<span style="color:var(--green)">✓ ${it.l4} → ${attrs}</span><br>`;
+        } else {
+          log.innerHTML += `<span style="color:var(--red)">✗ ${it.l4} - 生成为空</span><br>`;
+        }
+      });
+    } catch(e) {
+      batch.forEach(it => {
+        log.innerHTML += `<span style="color:var(--red)">✗ ${it.l4} - ${e.message}</span><br>`;
+      });
+    }
+    log.scrollTop = log.scrollHeight;
+    await new Promise(r => setTimeout(r, 100));
+  }
+
+  $('cat-ai-prog').style.width = '100%';
+  $('cat-ai-status').textContent = `完成！成功 ${updates.length} 条，共 ${items.length} 条`;
+  if (updates.length > 0) {
+    await POST('/categories/batch-update-attrs', {updates}).catch(e => toast('保存失败: '+e.message,'error'));
+  }
+  $('cat-ai-close').disabled = false;
+  toast(`已完成 ${updates.length} 条品类属性生成`);
+}
+
+// 编辑品类属性（增删改）
+function editCatAttrs(id, currentAttrs, l4name) {
+  const attrs = currentAttrs ? currentAttrs.split(',').map(s=>s.trim()).filter(Boolean) : [];
+  const renderAttrs = (list) => {
+    return list.length === 0
+      ? '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">暂无属性，请新增或AI生成</div>'
+      : list.map((a,i) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <input type="text" class="cat-attr-inp" value="${a}" style="flex:1;padding:5px 8px;font-size:13px" data-idx="${i}">
+        <button class="btn btn-red btn-sm" onclick="removeCatAttrItem(${i})">删除</button>
+      </div>`).join('');
+  };
+
+  window._editCatAttrId = id;
+  window._editCatAttrList = [...attrs];
+
+  openMd(`<div class="modal-title">🏷 编辑品类属性 · ${l4name}</div>
+  <div id="cat-attr-list">${renderAttrs(attrs)}</div>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <input type="text" id="new-cat-attr" placeholder="输入新属性名称" style="flex:1">
+    <button class="btn btn-outline btn-sm" onclick="addCatAttrItem()">+ 添加</button>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="closeMd()">取消</button>
+    <button class="btn btn-primary" onclick="saveCatAttrs()">💾 保存</button>
+  </div>`);
+
+  window._renderCatAttrList = renderAttrs;
+}
+
+function addCatAttrItem() {
+  const val = $('new-cat-attr').value.trim();
+  if (!val) { toast('请输入属性名称','error'); return; }
+  window._editCatAttrList.push(val);
+  $('cat-attr-list').innerHTML = window._renderCatAttrList(window._editCatAttrList);
+  $('new-cat-attr').value = '';
+}
+
+function removeCatAttrItem(idx) {
+  window._editCatAttrList.splice(idx, 1);
+  $('cat-attr-list').innerHTML = window._renderCatAttrList(window._editCatAttrList);
+}
+
+async function saveCatAttrs() {
+  // 读取最新值（用户可能inline编辑了）
+  const inputs = document.querySelectorAll('.cat-attr-inp');
+  const list = [];
+  inputs.forEach(inp => { const v = inp.value.trim(); if(v) list.push(v); });
+  const key_attrs = list.join(',');
+  await PUT('/categories/' + window._editCatAttrId, {key_attrs});
+  closeMd(); loadList(); toast('属性已保存');
+}
+
+// AI生成规则配置
+async function showCatAttrRule() {
+  const s = await GET('/settings').catch(()=>({}));
+  const prompt = s.cat_attr_prompt || '你是品类数据治理专家。根据给定的品类层级路径（一级>二级>三级>四级），为该末级品类生成4-5个关键SKU属性和2个补充属性。关键属性是决定SKU唯一性的核心维度（如规格、型号、材质、功率等），补充属性为辅助描述。只返回属性名称，用逗号分隔。不要任何其他内容。';
+  openMd(`<div class="modal-title">⚙ AI生成品类属性规则配置</div>
+  <div class="alert alert-blue" style="font-size:12px">💡 此规则用于AI生成品类关键属性时的提示词。修改后将影响所有后续的AI生成操作。</div>
+  <div class="form-group"><label>AI提示词规则</label><textarea id="cat-rule-prompt" style="height:160px;resize:vertical;font-size:12px;line-height:1.6">${prompt}</textarea></div>
+  <div class="form-group"><label style="color:var(--text2)">规则说明</label>
+    <div style="font-size:12px;color:var(--text3);line-height:1.8;padding:10px;background:var(--bg3);border-radius:6px">
+      • 提示词决定AI如何为品类生成关键属性<br>
+      • 建议明确属性数量（如4-5个关键+2个补充）<br>
+      • 建议指明返回格式（如逗号分隔的属性名称）<br>
+      • 可根据行业特点自定义属性维度
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="closeMd()">取消</button>
+    <button class="btn btn-outline" onclick="resetCatAttrRule()">🔄 恢复默认</button>
+    <button class="btn btn-primary" onclick="saveCatAttrRule()">💾 保存规则</button>
+  </div>`);
+}
+
+async function saveCatAttrRule() {
+  const prompt = $('cat-rule-prompt').value.trim();
+  if (!prompt) { toast('规则不能为空','error'); return; }
+  await POST('/settings', {cat_attr_prompt: prompt});
+  closeMd(); toast('AI规则已保存');
+}
+
+function resetCatAttrRule() {
+  $('cat-rule-prompt').value = '你是品类数据治理专家。根据给定的品类层级路径（一级>二级>三级>四级），为该末级品类生成4-5个关键SKU属性和2个补充属性。关键属性是决定SKU唯一性的核心维度（如规格、型号、材质、功率等），补充属性为辅助描述。只返回属性名称，用逗号分隔，例如：规格,型号,材质,功率,电压,品牌,产地。不要任何其他内容。';
+  toast('已恢复默认规则','info');
+}
+
+// 品类导出（含关键属性）
+async function exportCategories() {
+  try {
+    const cats = await GET('/categories/export');
+    exportCSV('品类目录.csv',
+      ['品类编码','一级品类','二级品类','三级品类','四级品类','品类关键属性','状态'],
+      cats.map(c => [c.code, c.l1, c.l2, c.l3, c.l4, c.key_attrs || '', c.status])
+    );
+    toast('品类目录已导出');
+  } catch(e) { toast('导出失败: '+e.message, 'error'); }
+}
+
+function openAddCat(){
+  openMd(`<div class="modal-title">➕ 新增品类</div>
+  <div class="form-group"><label>品类编码</label><input type="text" id="nc1" placeholder="如 010101001"></div>
+  <div class="form-group"><label>一级品类</label><input type="text" id="nc2" placeholder="如 设备及备件"></div>
+  <div class="form-group"><label>二级品类</label><input type="text" id="nc3"></div>
+  <div class="form-group"><label>三级品类</label><input type="text" id="nc4"></div>
+  <div class="form-group"><label>四级品类（多个用逗号分隔）</label><input type="text" id="nc5" placeholder="如 离心泵,螺杆泵"></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">取消</button><button class="btn btn-primary" onclick="saveNewCat()">保存</button></div>`);
+}
+async function saveNewCat(){
+  const l1=$('nc2').value.trim(),l2=$('nc3').value.trim(),l3=$('nc4').value.trim(),l4raw=$('nc5').value.trim(),code=$('nc1').value.trim();
+  if(!l1||!l2||!l3||!l4raw){toast('请填写完整信息','error');return;}
+  const l4list=l4raw.split(/[,，、]/).map(s=>s.trim()).filter(Boolean);
+  for(let i=0;i<l4list.length;i++){
+    const status=l1&&l2&&l3&&l4list[i]?'正常':'异常';
+    await POST('/categories',{code:code+(i>0?`-${i+1}`:''),l1,l2,l3,l4:l4list[i],status});
+  }
+  closeMd();loadList();toast(`已新增 ${l4list.length} 条品类`);
+}
+function editCat(id,code,l1,l2,l3,l4){
+  openMd(`<div class="modal-title">✏️ 编辑品类</div>
+  <div class="form-group"><label>品类编码</label><input type="text" id="ec1" value="${code}"></div>
+  <div class="form-group"><label>一级品类</label><input type="text" id="ec2" value="${l1}"></div>
+  <div class="form-group"><label>二级品类</label><input type="text" id="ec3" value="${l2}"></div>
+  <div class="form-group"><label>三级品类</label><input type="text" id="ec4" value="${l3}"></div>
+  <div class="form-group"><label>四级品类</label><input type="text" id="ec5" value="${l4}"></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">取消</button><button class="btn btn-primary" onclick="saveEditCat('${id}')">保存</button></div>`);
+}
+async function saveEditCat(id){
+  const l1=$('ec2').value.trim(),l2=$('ec3').value.trim(),l3=$('ec4').value.trim(),l4=$('ec5').value.trim();
+  await PUT('/categories/'+id,{code:$('ec1').value,l1,l2,l3,l4,status:l1&&l2&&l3&&l4?'正常':'异常'});
+  closeMd();loadList();toast('已保存');
+}
+async function importCats(inp){
+  const f=inp.files[0];if(!f)return;
+  const fd=new FormData();fd.append('file',f);
+  const r=await UPLOAD('/upload/csv',fd).catch(e=>{toast(e.message,'error');return null;});
+  if(!r)return;
+  let added=0;
+  for(const row of r.rows){
+    const l4raw=row['四级品类']||row['l4']||'';
+    const l4list=l4raw.split(/[,，、]/).map(s=>s.trim()).filter(Boolean);
+    const l1=row['一级品类']||row['l1']||'';
+    const l2=row['二级品类']||row['l2']||'';
+    const l3=row['三级品类']||row['l3']||'';
+    const code=row['品类编码']||row['code']||'';
+    const key_attrs=row['品类关键属性']||row['key_attrs']||'';
+    for(let i=0;i<l4list.length;i++){
+      await POST('/categories',{code:code+(i>0?`-${i+1}`:''),l1,l2,l3,l4:l4list[i],key_attrs,status:l1&&l2&&l3&&l4list[i]?'正常':'异常'});
+      added++;
+    }
+  }
+  loadList();toast(`导入 ${added} 条品类`);inp.value='';
+}
+
+// ══════════════════════════════════════════════════
+// 品类属性
+// ══════════════════════════════════════════════════
+async function pgCatAttr(){
+  const cats=await GET('/categories?q=');
+  const l1list=[...new Set(cats.map(c=>c.l1))];
+  $('content').innerHTML=`<h1 class="pt">🏷 品类属性</h1>
+  <div class="grid2">
+    <div class="card">
+      <h2>选择末级品类</h2>
+      <div class="form-group"><label>一级品类</label><select id="sl1" onchange="upL2()"><option value="">请选择</option>${l1list.map(l=>`<option>${l}</option>`).join('')}</select></div>
+      <div class="form-group"><label>二级品类</label><select id="sl2" onchange="upL3()"><option value="">请先选一级</option></select></div>
+      <div class="form-group"><label>三级品类</label><select id="sl3" onchange="upL4()"><option value="">请先选二级</option></select></div>
+      <div class="form-group"><label>末级品类（四级）</label><select id="sl4"><option value="">请先选三级</option></select></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="genAttr()">✨ AI 一键生成属性</button>
+      <div style="font-size:12px;color:var(--text3);margin-top:8px;text-align:center">调用AI识别该品类决定SKU唯一性的核心属性</div>
+    </div>
+    <div class="card" id="attr-panel"><h2>属性生成结果</h2><div style="color:var(--text3);font-size:13px;text-align:center;padding:40px 0;background:var(--bg3);border-radius:8px">← 选择末级品类后点击"AI一键生成"</div></div>
+  </div>`;
+  window._cats=cats;
+}
+function upL2(){const l1=$('sl1').value;const l2s=[...new Set(window._cats.filter(c=>c.l1===l1).map(c=>c.l2))];$('sl2').innerHTML='<option value="">请选择</option>'+l2s.map(l=>`<option>${l}</option>`).join('');$('sl3').innerHTML='<option value="">请先选二级</option>';$('sl4').innerHTML='<option value="">请先选三级</option>';}
+function upL3(){const l1=$('sl1').value,l2=$('sl2').value;const l3s=[...new Set(window._cats.filter(c=>c.l1===l1&&c.l2===l2).map(c=>c.l3))];$('sl3').innerHTML='<option value="">请选择</option>'+l3s.map(l=>`<option>${l}</option>`).join('');$('sl4').innerHTML='<option value="">请先选三级</option>';}
+function upL4(){const l1=$('sl1').value,l2=$('sl2').value,l3=$('sl3').value;const l4s=[...new Set(window._cats.filter(c=>c.l1===l1&&c.l2===l2&&c.l3===l3).map(c=>c.l4))];$('sl4').innerHTML='<option value="">请选择</option>'+l4s.map(l=>`<option>${l}</option>`).join('');}
+async function genAttr(){
+  const l4=$('sl4').value,l3=$('sl3').value;
+  if(!l4){toast('请选择末级品类','error');return;}
+  $('attr-panel').innerHTML=`<h2>属性生成结果</h2><div class="alert alert-blue">⏳ AI 正在分析 <strong>${l4}</strong> 的属性特征...</div>`;
+  try{
+    const resp=await POST('/ai/chat',{systemPrompt:`你是商品数据治理专家，请分析给定品类的关键属性，用于SKU命名和唯一性标识。返回JSON格式：{"core":[{"name":"属性名","unit":"单位或—","example":"示例值","type":"数值型/枚举型/文本型"}],"secondary":[...]}。只返回JSON，不要任何其他文字。`,userPrompt:`品类路径：${l3} > ${l4}\n请生成该品类决定SKU唯一性的核心属性（3-6个）和次要属性（2-4个）。`});
+    let data;try{data=JSON.parse(resp.content.replace(/```json?|```/g,'').trim());}catch{throw new Error('AI返回格式错误');}
+    const row=(a,badge,bc)=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="flex:2;font-weight:600">${a.name}</span><span style="flex:1;color:var(--text3)">${a.unit||'—'}</span><span style="flex:2;color:var(--text2)">${a.example||'—'}</span><span class="badge b-gray">${a.type||'文本型'}</span><span class="badge ${bc}">${badge}</span></div>`;
+    $('attr-panel').innerHTML=`<h2>✅ ${l4} · 属性定义</h2>
+    <div style="font-size:12px;font-weight:500;color:var(--blue);padding:6px 10px;background:var(--blue-light);border-radius:5px;margin-bottom:8px">📌 核心属性（决定SKU唯一性）</div>
+    ${(data.core||[]).map(a=>row(a,'核心','b-blue')).join('')}
+    <div style="font-size:12px;font-weight:500;color:var(--text2);padding:6px 10px;background:var(--bg3);border-radius:5px;margin:12px 0 8px">📎 次要属性（辅助描述）</div>
+    ${(data.secondary||[]).map(a=>row(a,'次要','b-gray')).join('')}
+    <div style="display:flex;gap:8px;margin-top:14px"><button class="btn btn-primary btn-sm" onclick="toast('属性定义已保存')">💾 保存属性定义</button><button class="btn btn-outline btn-sm" onclick="genAttr()">🔄 重新生成</button></div>`;
+  }catch(e){$('attr-panel').innerHTML=`<h2>属性生成结果</h2><div class="alert alert-red">✗ 失败：${e.message}</div><button class="btn btn-outline btn-sm" onclick="genAttr()">重试</button>`;}
+}
+
+// ══════════════════════════════════════════════════
+// 商品归一
+// ══════════════════════════════════════════════════
+let uData=[],uResults={groups:[],rawData:[]};
+async function pgGoodsUnify(){
+  uData=[];uResults={groups:[],rawData:[]};
+  $('content').innerHTML=`<h1 class="pt">🔀 商品归一</h1>
+  <div class="steps"><div class="step active" id="u1"><div class="step-num">1</div><span>上传商品数据</span></div><div class="step-line"></div><div class="step" id="u2"><div class="step-num">2</div><span>AI归一处理</span></div><div class="step-line"></div><div class="step" id="u3"><div class="step-num">3</div><span>人工审核</span></div><div class="step-line"></div><div class="step" id="u4"><div class="step-num">4</div><span>生成标准商品</span></div></div>
+  <div id="u-panel"></div>`;
+  $('u-panel').innerHTML=`<div class="grid2">
+    <div class="card"><h2>上传原始商品数据</h2>
+      <div class="upload-zone" id="uzone2" onclick="$('u-finp').click()"><div style="font-size:40px;margin-bottom:10px">📦</div><div style="font-size:14px;font-weight:500;margin-bottom:6px">点击或拖拽上传 CSV 文件</div><div style="font-size:12px;color:var(--text3)">列名建议：编码、商品名称 · 最大 10,000 行</div></div>
+      <input type="file" id="u-finp" accept=".csv" style="display:none" onchange="onUFile(this)">
+      <div id="u-finfo" style="display:none;margin-top:12px"></div>
+      <div class="alert alert-blue" style="margin-top:12px">💡 <button class="btn btn-outline btn-sm" onclick="dlTpl('商品归一模板.csv',['编码','商品名称'],[['P001','IS65-50-125型离心泵'],['P002','IS65型50-125离心泵']])">下载模板</button></div>
+    </div>
+    <div class="card"><h2>归一说明</h2><p style="font-size:13px;color:var(--text2);line-height:1.8">AI将识别描述相同商品的不同名称，将其归并为一条标准商品记录。</p>
+    <div style="margin-top:12px"><div style="padding:8px 12px;background:var(--amber-light);border-radius:6px;font-size:12px;margin-bottom:8px"><div style="color:var(--amber);font-weight:500;margin-bottom:4px">原始商品（多条）</div><div>IS65-50-125型离心泵</div><div>IS65型50-125离心泵</div><div>离心泵IS65-50125</div></div><div style="text-align:center;font-size:18px;margin:6px 0">↓ AI归一</div><div style="padding:8px 12px;background:var(--green-light);border-radius:6px;font-size:12px"><div style="color:var(--green);font-weight:500">标准商品（1条）</div><div>离心泵 IS65-50-125</div></div></div></div>
+  </div>`;
+  const uz=$('uzone2');
+  uz.ondragover=e=>{e.preventDefault();uz.classList.add('drag-over')};
+  uz.ondragleave=()=>uz.classList.remove('drag-over');
+  uz.ondrop=e=>{e.preventDefault();uz.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)uploadUFile(f)};
+}
+function onUFile(inp){if(inp.files[0])uploadUFile(inp.files[0]);}
+async function uploadUFile(file){
+  const fd=new FormData();fd.append('file',file);
+  const r=await UPLOAD('/upload/csv',fd).catch(e=>{toast(e.message,'error');return null;});
+  if(!r)return;
+  uData=r.rows;
+  $('u-finfo').style.display='block';
+  $('u-finfo').innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--green-light);border-radius:8px;border:1px solid #a7f3d0"><span style="font-size:22px">📦</span><div style="flex:1"><div style="font-size:13px;font-weight:500">${file.name}</div><div style="font-size:12px;color:var(--text3)">${r.count} 条商品数据</div></div><span class="badge b-green">就绪</span></div><div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-outline btn-sm" onclick="pgGoodsUnify()">重新上传</button><button class="btn btn-primary" onclick="startUnify()">▶ 开始 AI 归一</button></div>`;
+}
+async function startUnify(){
+  if(!uData.length){toast('请先上传文件','error');return;}
+  $('u1').className='step done';$('u2').className='step active';
+  const nameKey=Object.keys(uData[0]).find(k=>k.includes('名')||k.toLowerCase().includes('name'))||Object.keys(uData[0])[1]||'商品名称';
+  const codeKey=Object.keys(uData[0]).find(k=>k.includes('编')||k.toLowerCase().includes('code'))||Object.keys(uData[0])[0]||'编码';
+  $('u-panel').innerHTML=`<div class="card"><h2>⏳ AI 正在归一处理...</h2><div class="progress-bar"><div class="progress-fill" id="uprog" style="width:30%;background:linear-gradient(90deg,var(--blue),var(--cyan))"></div></div><div style="font-size:13px;color:var(--text3);margin-top:10px">正在分析 ${uData.length} 条商品，识别同义项...</div></div>`;
+  try{
+    const names=uData.map(r=>r[nameKey]).filter(Boolean);
+    $('uprog').style.width='60%';
+    const resp=await POST('/ai/chat',{systemPrompt:`你是商品数据归一专家。请将下列商品名称进行归一处理，识别描述同一商品的不同名称并归并。返回JSON格式：[{"stdName":"标准商品名称","confidence":95,"originals":["原始名称1","原始名称2"]}]。每个分组必须有stdName和originals数组，confidence为1-100的整数。只返回JSON数组，不要任何其他内容。`,userPrompt:`商品列表（共${names.length}条）：\n${names.join('\n')}`});
+    $('uprog').style.width='90%';
+    let groups;try{groups=JSON.parse(resp.content.replace(/```json?|```/g,'').trim());}catch{throw new Error('AI返回格式错误');}
+    uResults={groups,rawData:uData,nameKey,codeKey};
+    $('u2').className='step done';$('u3').className='step active';
+    $('uprog').style.width='100%';
+    renderUnifyReview();
+  }catch(e){$('u-panel').innerHTML=`<div class="card"><div class="alert alert-red">✗ 归一失败：${e.message}</div><button class="btn btn-outline" onclick="pgGoodsUnify()">重新开始</button></div>`;}
+}
+function renderUnifyReview(){
+  const {groups}=uResults;
+  $('u-panel').innerHTML=`<div class="card" style="margin-bottom:16px"><div class="grid4">
+    <div class="stat-card" style="border-top:3px solid var(--blue)"><div style="font-size:12px;color:var(--text3)">原始商品</div><div class="stat-num" style="color:var(--blue)">${uData.length}</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--green)"><div style="font-size:12px;color:var(--text3)">归一后标准商品</div><div class="stat-num" style="color:var(--green)">${groups.length}</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--amber)"><div style="font-size:12px;color:var(--text3)">待审核</div><div class="stat-num" style="color:var(--amber)">${groups.length}</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--cyan)"><div style="font-size:12px;color:var(--text3)">归并比例</div><div class="stat-num" style="color:var(--cyan)">${uData.length?Math.round((1-groups.length/uData.length)*100):0}%</div></div>
+  </div></div>
+  <div class="card"><h2>📝 AI归一结果 — 请审核确认</h2>
+  <div class="tbl-wrap"><table><thead><tr><th>标准商品名（AI建议，可修改）</th><th>归并的原始商品</th><th>AI置信度</th><th>操作</th></tr></thead><tbody>
+  ${groups.map((g,i)=>`<tr id="ur-${i}"><td><input type="text" id="usn-${i}" value="${g.stdName}" style="font-weight:600;min-width:150px"></td><td style="font-size:12px;color:var(--text3);max-width:220px">${(g.originals||[]).join(' · ')}</td><td><span style="color:${(g.confidence||80)>=90?'var(--green)':(g.confidence||80)>=75?'var(--amber)':'var(--red)'};font-weight:700">${g.confidence||80}%</span></td><td style="display:flex;gap:5px"><button class="btn btn-green btn-sm" onclick="document.getElementById('ur-${i}').style.background='#f0fdf4';toast('已确认')">✓ 确认</button><button class="btn btn-red btn-sm" onclick="document.getElementById('ur-${i}').style.background='#fff8f8';toast('已标记拆分','info')">✗ 拆分</button></td></tr>`).join('')}
+  </tbody></table></div>
+  <div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-primary" onclick="confirmUnify()">✓ 全部确认并生成标准商品</button><button class="btn btn-outline" onclick="pgGoodsUnify()">重新开始</button></div>
+  </div>`;
+}
+async function confirmUnify(){
+  const {groups,rawData,nameKey,codeKey}=uResults;
+  const codeResp=await GET('/gen-goods-code').catch(()=>({code:'SP000001'}));
+  const prefix=codeResp.code.replace(/\d+$/,'');
+  const startNum=parseInt(codeResp.code.replace(prefix,''))||1;
+  const digits=codeResp.code.replace(prefix,'').length||6;
+  const stdGoods=[],rawGoods=[];
+  groups.forEach((g,i)=>{
+    const stdName=$(`usn-${i}`)?.value||g.stdName;
+    const code=prefix+String(startNum+i).padStart(digits,'0');
+    stdGoods.push({id:genId(),code,name:stdName,raw_count:(g.originals||[]).length,created_at:Date.now()});
+    (g.originals||[]).forEach(origName=>{
+      const origRow=rawData.find(r=>r[nameKey]===origName);
+      rawGoods.push({id:genId(),code:origRow?.[codeKey]||genId(),name:origName,std_code:code,std_name:stdName,source:'CSV导入',created_at:Date.now()});
+    });
+  });
+  await POST('/goods-unify/save-results',{stdGoods,rawGoods});
+  $('u3').className='step done';$('u4').className='step active';
+  $('u-panel').innerHTML=`<div class="card"><div class="alert alert-green">✅ 归一完成！已生成 ${stdGoods.length} 条标准商品</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-primary" onclick="goPage('goods-std')">查看标准商品 →</button><button class="btn btn-outline" onclick="goPage('goods-raw')">查看原始商品 →</button></div></div>`;
+  toast('商品归一完成');
+}
+
+// ══════════════════════════════════════════════════
+// 原始商品 / 标准商品
+// ══════════════════════════════════════════════════
+function pgGoodsRaw(){
+  makeListPage({
+    title:'📦 原始商品', apiPath:'/goods-raw', searchPlaceholder:'搜索编码/名称...',
+    filterOptions:['已归一','未归一'], filterField:'status',
+    columns:[{label:'编码'},{label:'原始商品名称'},{label:'标准商品编码'},{label:'标准商品名称'},{label:'状态'},{label:'来源'}],
+    extraBtns:`<button class="btn btn-outline btn-sm" onclick="$('grim').click()">⬆ 导入</button><input type="file" id="grim" accept=".csv" style="display:none" onchange="importRawGoods(this)"><button class="btn btn-primary btn-sm" onclick="goPage('goods-unify')">▶ 执行归一</button><button class="btn btn-outline btn-sm" onclick="exportRawGoods()">⬇ 导出</button>`,
+    rowRenderer:r=>`<tr><td style="font-family:monospace;color:var(--blue)">${r.code}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</td><td style="font-family:monospace;color:var(--text3)">${r.std_code||'—'}</td><td>${r.std_name||'—'}</td><td><span class="badge ${r.status==='已归一'?'b-green':'b-amber'}">${r.status}</span></td><td style="color:var(--text3);font-size:12px">${r.source||'—'}</td><td><button class="btn btn-red btn-sm" onclick="delItem('/goods-raw','${r.id}')">删除</button></td></tr>`
+  });
+}
+async function importRawGoods(inp){
+  const f=inp.files[0];if(!f)return;
+  const fd=new FormData();fd.append('file',f);
+  const r=await UPLOAD('/upload/csv',fd).catch(e=>{toast(e.message,'error');return null;});
+  if(!r)return;
+  const nameKey=Object.keys(r.rows[0]||{}).find(k=>k.includes('名'))||'商品名称';
+  const codeKey=Object.keys(r.rows[0]||{}).find(k=>k.includes('编'))||'编码';
+  for(const row of r.rows) await POST('/goods-raw',{code:row[codeKey]||genId(),name:row[nameKey]||'',status:'未归一',source:'手动导入'});
+  loadList();toast(`导入 ${r.rows.length} 条`);inp.value='';
+}
+async function exportRawGoods(){const d=await GET('/goods-raw?q=');exportCSV('原始商品.csv',['编码','名称','标准编码','标准名称','状态'],d.map(r=>[r.code,r.name,r.std_code,r.std_name,r.status]));toast('已导出');}
+
+function pgGoodsStd(){
+  makeListPage({
+    title:'⭐ 标准商品', apiPath:'/goods-std', searchPlaceholder:'搜索编码/名称...',
+    columns:[{label:'商品编码'},{label:'商品名称'},{label:'所属品类'},{label:'核心属性'},{label:'关联原始商品数'},{label:'关联物料'},{label:'创建时间'}],
+    extraBtns:`<button class="btn btn-primary btn-sm" onclick="openAddStd()">+ 新增</button><button class="btn btn-outline btn-sm" onclick="exportStd()">⬇ 导出</button>`,
+    rowRenderer:s=>`<tr><td style="font-family:monospace;color:var(--blue)">${s.code}</td><td style="font-weight:600">${s.name}</td><td>${s.category?`<span class="badge b-blue">${s.category}</span>`:'—'}</td><td style="font-size:12px;color:var(--text3);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.attrs||'—'}</td><td style="text-align:center">${s.raw_count||0}</td><td style="font-family:monospace;font-size:12px;color:var(--text3)">${s.mat_code||'—'}</td><td style="color:var(--text3)">${fmtDate(s.created_at)}</td><td style="display:flex;gap:5px"><button class="btn btn-outline btn-sm" onclick="editStd('${s.id}','${s.code}','${s.name.replace(/'/g,'&#39;')}','${s.category||''}','${(s.attrs||'').replace(/'/g,'&#39;')}','${s.mat_code||''}')">编辑</button><button class="btn btn-red btn-sm" onclick="delItem('/goods-std','${s.id}')">删除</button></td></tr>`
+  });
+}
+async function openAddStd(){
+  const {code}=await GET('/gen-goods-code');
+  const cats=await GET('/categories?q=');
+  const catOpts=[...new Set(cats.map(c=>c.l4))].map(c=>`<option>${c}</option>`).join('');
+  const mats=await GET('/mat-archive?q=');
+  const matOpts=mats.map(a=>`<option value="${a.code}">${a.code}-${a.name}</option>`).join('');
+  openMd(`<div class="modal-title">➕ 新增标准商品</div>
+  <div class="form-group"><label>商品编码</label><input type="text" id="ns1" value="${code}"></div>
+  <div class="form-group"><label>商品名称</label><input type="text" id="ns2"></div>
+  <div class="form-group"><label>所属品类</label><select id="ns3"><option value="">请选择</option>${catOpts}</select></div>
+  <div class="form-group"><label>核心属性摘要</label><input type="text" id="ns4" placeholder="如：流量50m³/h·扬程80m"></div>
+  <div class="form-group"><label>关联物料</label><select id="ns5"><option value="">请选择</option>${matOpts}</select></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">取消</button><button class="btn btn-primary" onclick="saveNewStd()">保存</button></div>`);
+}
+async function saveNewStd(){
+  const name=$('ns2').value.trim();if(!name){toast('请填写商品名称','error');return;}
+  await POST('/goods-std',{code:$('ns1').value,name,category:$('ns3').value,attrs:$('ns4').value,raw_count:0,mat_code:$('ns5').value});
+  closeMd();loadList();toast('已新增');
+}
+function editStd(id,code,name,cat,attrs,mat){
+  openMd(`<div class="modal-title">✏️ 编辑标准商品</div>
+  <div class="form-group"><label>商品编码</label><input type="text" id="es1" value="${code}"></div>
+  <div class="form-group"><label>商品名称</label><input type="text" id="es2" value="${name}"></div>
+  <div class="form-group"><label>所属品类</label><input type="text" id="es3" value="${cat}"></div>
+  <div class="form-group"><label>核心属性</label><input type="text" id="es4" value="${attrs}"></div>
+  <div class="form-group"><label>关联物料编码</label><input type="text" id="es5" value="${mat}"></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">取消</button><button class="btn btn-primary" onclick="saveEditStd('${id}')">保存</button></div>`);
+}
+async function saveEditStd(id){await PUT('/goods-std/'+id,{code:$('es1').value,name:$('es2').value,category:$('es3').value,attrs:$('es4').value,mat_code:$('es5').value});closeMd();loadList();toast('已保存');}
+async function exportStd(){const d=await GET('/goods-std?q=');exportCSV('标准商品.csv',['编码','名称','品类','核心属性','关联物料'],d.map(s=>[s.code,s.name,s.category,s.attrs,s.mat_code]));toast('已导出');}
+
+// ══════════════════════════════════════════════════
+// 商品物料映射
+// ══════════════════════════════════════════════════
+function pgMapping(){
+  makeListPage({
+    title:'⇄ 商品物料映射', apiPath:'/mapping', searchPlaceholder:'搜索商品/物料...',
+    columns:[{label:'标准商品编码'},{label:'标准商品名称'},{label:'物料编码'},{label:'物料名称'},{label:'映射类型'},{label:'映射方式'},{label:'创建时间'}],
+    extraBtns:`<button class="btn btn-primary btn-sm" onclick="openAddMapping()">+ 新增映射</button><button class="btn btn-outline btn-sm" onclick="exportMapping()">⬇ 导出</button>`,
+    rowRenderer:m=>`<tr><td style="font-family:monospace;font-size:12px;color:var(--blue)">${m.goods_code}</td><td>${m.goods_name}</td><td style="font-family:monospace;font-size:12px;color:var(--text3)">${m.mat_code}</td><td>${m.mat_name}</td><td><span class="badge b-blue">${m.type}</span></td><td><span class="badge ${m.method==='人工确认'?'b-green':'b-gray'}">${m.method}</span></td><td style="color:var(--text3)">${fmtDate(m.created_at)}</td><td style="display:flex;gap:5px"><button class="btn btn-outline btn-sm" onclick="editMapping('${m.id}','${m.goods_code}','${m.goods_name.replace(/'/g,'&#39;')}','${m.mat_code}','${m.mat_name.replace(/'/g,'&#39;')}','${m.type}','${m.method}')">编辑</button><button class="btn btn-red btn-sm" onclick="delItem('/mapping','${m.id}')">删除</button></td></tr>`
+  });
+}
+async function openAddMapping(){
+  const [stds,mats]=await Promise.all([GET('/goods-std?q='),GET('/mat-archive?q=')]);
+  openMd(`<div class="modal-title">➕ 新增映射关系</div>
+  <div class="form-group"><label>标准商品</label><select id="nm1"><option value="">请选择</option>${stds.map(s=>`<option value="${s.code}|${s.name}">${s.code}-${s.name}</option>`).join('')}</select></div>
+  <div class="form-group"><label>物料档案</label><select id="nm2"><option value="">请选择</option>${mats.map(a=>`<option value="${a.code}|${a.name}">${a.code}-${a.name}</option>`).join('')}</select></div>
+  <div class="form-group"><label>映射类型</label><select id="nm3"><option>1:1</option><option>1:N</option><option>N:1</option></select></div>
+  <div class="form-group"><label>映射方式</label><select id="nm4"><option>人工确认</option><option>AI匹配</option></select></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">取消</button><button class="btn btn-primary" onclick="saveNewMapping()">保存</button></div>`);
+}
+async function saveNewMapping(){
+  const gv=$('nm1').value,mv=$('nm2').value;
+  if(!gv||!mv){toast('请选择商品和物料','error');return;}
+  const [gc,gn]=gv.split('|');const [mc,mn]=mv.split('|');
+  await POST('/mapping',{goods_code:gc,goods_name:gn,mat_code:mc,mat_name:mn,type:$('nm3').value,method:$('nm4').value});
+  closeMd();loadList();toast('已新增映射');
+}
+function editMapping(id,gc,gn,mc,mn,type,method){
+  openMd(`<div class="modal-title">✏️ 编辑映射</div>
+  <div class="form-group"><label>商品编码</label><input type="text" id="em1" value="${gc}"></div>
+  <div class="form-group"><label>商品名称</label><input type="text" id="em2" value="${gn}"></div>
+  <div class="form-group"><label>物料编码</label><input type="text" id="em3" value="${mc}"></div>
+  <div class="form-group"><label>物料名称</label><input type="text" id="em4" value="${mn}"></div>
+  <div class="form-group"><label>映射类型</label><select id="em5"><option>1:1</option><option>1:N</option><option>N:1</option></select></div>
+  <div class="form-group"><label>映射方式</label><select id="em6"><option>人工确认</option><option>AI匹配</option></select></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">取消</button><button class="btn btn-primary" onclick="saveEditMapping('${id}')">保存</button></div>`);
+  $('em5').value=type;$('em6').value=method;
+}
+async function saveEditMapping(id){await PUT('/mapping/'+id,{goods_code:$('em1').value,goods_name:$('em2').value,mat_code:$('em3').value,mat_name:$('em4').value,type:$('em5').value,method:$('em6').value});closeMd();loadList();toast('已保存');}
+async function exportMapping(){const d=await GET('/mapping?q=');exportCSV('商品物料映射.csv',['商品编码','商品名称','物料编码','物料名称','映射类型','映射方式'],d.map(m=>[m.goods_code,m.goods_name,m.mat_code,m.mat_name,m.type,m.method]));toast('已导出');}
+
+// ══════════════════════════════════════════════════
+// 系统设置
+// ══════════════════════════════════════════════════
+async function pgSettings(){
+  const s=await GET('/settings').catch(()=>({api_type:'deepseek',api_key:'',api_base:'',api_model:'',mat_code_prefix:'ML',mat_code_digits:'6',goods_code_prefix:'SP',goods_code_digits:'6',mat_extract_prompt:'',mat_similarity_threshold:'0.8',username:'admin'}));
+  $('content').innerHTML=`<h1 class="pt">⚙ 系统设置</h1>
+  <div class="grid2">
+    <div class="card">
+      <h2>🔑 AI 大模型配置</h2>
+      <div class="form-group"><label>模型类型</label><select id="st"><option value="deepseek" ${s.api_type==='deepseek'?'selected':''}>DeepSeek</option><option value="openai" ${s.api_type==='openai'?'selected':''}>OpenAI (GPT)</option><option value="qianwen" ${s.api_type==='qianwen'?'selected':''}>通义千问（阿里）</option><option value="claude" ${s.api_type==='claude'?'selected':''}>Claude (Anthropic)</option><option value="custom" ${s.api_type==='custom'?'selected':''}>自定义</option></select></div>
+      <div class="form-group"><label>API 密钥</label><input type="password" id="sk" value="${s.api_key||''}" placeholder="请输入API密钥"></div>
+      <div class="form-group"><label>自定义 API 地址（可选）</label><input type="text" id="sb" value="${s.api_base||''}" placeholder="留空使用默认地址"></div>
+      <div class="form-group"><label>自定义模型名称（可选）</label><input type="text" id="sm" value="${s.api_model||''}" placeholder="留空使用默认模型"></div>
+      <div class="alert alert-amber" style="margin-bottom:12px"><span>⚠</span> API密钥保存在服务器，请保管好您的密钥</div>
+      <div style="display:flex;gap:8px"><button class="btn btn-primary" onclick="saveAI()">💾 保存配置</button><button class="btn btn-outline" onclick="testAI()">🧪 测试连接</button></div>
+      <div id="test-res" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <h2>👤 账号与编码设置</h2>
+      <div class="form-group"><label>当前用户名</label><input type="text" id="su" value="${s.username}"></div>
+      <div class="form-group"><label>当前密码（修改密码时必填）</label><input type="password" id="scp" placeholder="输入当前密码"></div>
+      <div class="form-group"><label>新密码（留空则不修改）</label><input type="password" id="snp" placeholder="新密码"></div>
+      <div class="form-group"><label>确认新密码</label><input type="password" id="scp2" placeholder="再次输入新密码"></div>
+      <button class="btn btn-primary btn-sm" style="margin-bottom:16px" onclick="saveAccount()">💾 保存账号</button>
+      <div style="padding-top:14px;border-top:1px solid var(--border)">
+        <h3>编码规则</h3>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <div style="flex:1"><label>物料编码前缀</label><input type="text" id="mcp" value="${s.mat_code_prefix||'ML'}"></div>
+          <div style="flex:1"><label>物料编码位数</label><input type="number" id="mcd" value="${s.mat_code_digits||6}" min="4" max="10"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <div style="flex:1"><label>商品编码前缀</label><input type="text" id="gcp" value="${s.goods_code_prefix||'SP'}"></div>
+          <div style="flex:1"><label>商品编码位数</label><input type="number" id="gcd" value="${s.goods_code_digits||6}" min="4" max="10"></div>
+        </div>
+        <div style="margin-top:8px"><label>物料相似度阈值 (0.5-1.0)</label><input type="number" id="mst" value="${s.mat_similarity_threshold||0.8}" step="0.01" min="0.5" max="1.0"></div>
+        <button class="btn btn-outline btn-sm" style="margin-top:10px" onclick="saveCodeRule()">💾 保存规则设置</button>
+      </div>
+    </div>
+  </div>`;
+}
+async function saveAI(){
+  await POST('/settings',{api_type:$('st').value,api_key:$('sk').value,api_base:$('sb').value,api_model:$('sm').value});
+  loadModelLabel();toast('AI配置已保存');
+}
+async function testAI(){
+  $('test-res').innerHTML=`<div class="alert alert-blue">⏳ 正在测试...</div>`;
+  try{const r=await POST('/ai/chat',{systemPrompt:'你是助手',userPrompt:'请回复"连接成功"三个字，不要其他内容'});$('test-res').innerHTML=`<div class="alert alert-green">✅ 连接成功！AI回复：${r.content.slice(0,60)}</div>`;}
+  catch(e){$('test-res').innerHTML=`<div class="alert alert-red">✗ 连接失败：${e.message}</div>`;}
+}
+async function saveAccount(){
+  const np=$('snp').value,cp=$('scp').value,cp2=$('scp2').value;
+  if(np&&np!==cp2){toast('两次密码不一致','error');return;}
+  if(np&&!cp){toast('请填写当前密码','error');return;}
+  await POST('/settings/password',{currentPassword:cp||'12345a',newPassword:np,newUsername:$('su').value}).catch(e=>toast(e.message,'error'));
+  toast('账号设置已保存');$('username-label').textContent=$('su').value;
+}
+async function saveCodeRule(){
+  await POST('/settings',{mat_code_prefix:$('mcp').value,mat_code_digits:$('mcd').value,goods_code_prefix:$('gcp').value,goods_code_digits:$('gcd').value,mat_similarity_threshold:$('mst').value});
+  toast('规则设置已保存');
+}
+
+// ══════════════════════════════════════════════════
+// 通用 删除
+// ══════════════════════════════════════════════════
+async function delItem(apiPath, id){
+  if(!confirm('确认删除？')) return;
+  await DEL(apiPath+'/'+id);
+  if(typeof loadList==='function') loadList();
+  toast('已删除');
+}
+
+// ══════════════════════════════════════════════════
+// 通用 CSV导入辅助
+// ══════════════════════════════════════════════════
+async function importRaw(inp, apiPath, nameHint, csvCols, dbCols){
+  const f=inp.files[0];if(!f)return;
+  const fd=new FormData();fd.append('file',f);
+  const r=await UPLOAD('/upload/csv',fd).catch(e=>{toast(e.message,'error');return null;});
+  if(!r)return;
+  for(const row of r.rows){
+    const obj={status:'未治理',source:'手动导入'};
+    csvCols.forEach((col,i)=>obj[dbCols[i]]=row[col]||'');
+    await POST('/'+apiPath,obj);
+  }
+  loadList();toast(`导入 ${r.rows.length} 条`);inp.value='';
+}
+
+// ══════════════════════════════════════════════════
+// Auto-login
+// ══════════════════════════════════════════════════
+if(TOKEN){
+  GET('/stats').then(()=>{
+    $('login-page').style.display='none';
+    $('app').style.display='flex';
+    loadModelLabel();
+    navTo(document.querySelector('.nav-item[data-page="dashboard"]'));
+  }).catch(()=>{TOKEN='';localStorage.removeItem('token');});
+}
+</script>
+</body>
+</html>
