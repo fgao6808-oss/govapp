@@ -99,10 +99,22 @@ db.exec(`
     results_json TEXT,
     created_at INTEGER
   );
+  CREATE TABLE IF NOT EXISTS brands (
+    id TEXT PRIMARY KEY,
+    name TEXT UNIQUE,
+    created_at INTEGER
+  );
 `);
 
 // Migrations
-try { db.exec("ALTER TABLE categories ADD COLUMN key_attrs TEXT DEFAULT ''"); } catch(e) { /* column already exists */ }
+try { db.exec("ALTER TABLE categories ADD COLUMN key_attrs TEXT DEFAULT ''"); } catch(e) {}
+const newCols = [
+  'orig_code', 'orig_name', 'spec', 'brand', 'model', 'core_word',
+  'category_code', 'category_name', 'missing_attrs', 'std_name_proposed', 'match_status'
+];
+for (const col of newCols) {
+  try { db.exec(`ALTER TABLE goods_raw ADD COLUMN ${col} TEXT`); } catch(e) {}
+}
 
 // Init default settings
 const initSettings = () => {
@@ -244,6 +256,62 @@ app.post('/api/login', (req, res) => {
 });
 
 // ── Settings Routes ───────────────────────────────
+// --- Brands API ---
+app.get('/api/brands', auth, (req, res) => {
+  const { q = '', page = 1, limit = 20 } = req.query;
+  const offset = (page - 1) * limit;
+  try {
+    const list = db.prepare(`SELECT * FROM brands WHERE name LIKE ? ORDER BY created_at DESC LIMIT ? OFFSET ?`)
+      .all(`%${q}%`, limit, offset);
+    const total = db.prepare(`SELECT count(*) as c FROM brands WHERE name LIKE ?`)
+      .get(`%${q}%`).c;
+    res.json({ list, total });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/brands', auth, (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: '品牌名称为必填' });
+  try {
+    const stmt = db.prepare('INSERT INTO brands (id, name, created_at) VALUES (?, ?, ?)');
+    stmt.run(genId(), name, Date.now());
+    res.json({ success: true });
+  } catch (err) {
+    if (err.message.includes('UNIQUE constraint failed')) {
+      res.status(400).json({ error: '品牌已存在' });
+    } else {
+      res.status(500).json({ error: err.message });
+    }
+  }
+});
+
+app.put('/api/brands/:id', auth, (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: '品牌名称为必填' });
+  try {
+    const stmt = db.prepare('UPDATE brands SET name=? WHERE id=?');
+    stmt.run(name, req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    if (err.message.includes('UNIQUE constraint failed')) {
+      res.status(400).json({ error: '品牌名称已被使用' });
+    } else {
+      res.status(500).json({ error: err.message });
+    }
+  }
+});
+
+app.delete('/api/brands/:id', auth, (req, res) => {
+  try {
+    db.prepare('DELETE FROM brands WHERE id=?').run(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/settings', auth, (req, res) => {
   const keys = ['api_type', 'api_key', 'api_base', 'api_model', 'mat_code_prefix', 'mat_code_digits', 'goods_code_prefix', 'goods_code_digits', 'mat_extract_prompt', 'mat_similarity_threshold', 'cat_attr_prompt', 'username'];
   const result = {};
@@ -408,7 +476,51 @@ app.get('/api/categories/export', auth, (req, res) => {
   const rows = db.prepare('SELECT * FROM categories ORDER BY code ASC').all();
   res.json(rows);
 });
-crudRoutes(app, 'goods-raw', 'goods_raw', ['code','name','std_code','std_name','status','source'], ['code','name']);
+crudRoutes(app, 'goods-raw', 'goods_raw', ['code','name','std_code','std_name','status','source','orig_code','orig_name','spec','brand','model','core_word','category_code','category_name','missing_attrs','std_name_proposed','match_status'], ['code','name','orig_code','orig_name','brand','model','core_word']);
+
+// ── Goods Unify Pipeline Steps ────────────────────
+
+// Step 2: Import & Merge
+app.post('/api/goods-unify/import', auth, (req, res) => {
+  const { rows } = req.body;
+  if (!rows || !rows.length) return res.status(400).json({ error: '数据为空' });
+
+  const results = { total: rows.length, success: 0, duplicate: 0, skipped: [] };
+  const insertStmt = db.prepare(`
+    INSERT INTO goods_raw (id, code, name, orig_code, orig_name, spec, brand, status, source, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const tx = db.transaction(() => {
+    rows.forEach(r => {
+      const origCode = r['MRO商品编号'] || r['编码'] || '';
+      const origName = r['MRO商品名称'] || r['名称'] || '';
+      const spec = r['规格'] || r['规格型号'] || '';
+      const brand = r['品牌'] || '';
+      
+      if (!origCode) { results.skipped.push(origName); return; }
+
+      const existing = db.prepare('SELECT id FROM goods_raw WHERE orig_code = ?').get(origCode);
+      if (existing) {
+        results.duplicate++;
+        return;
+      }
+
+      // 合并名称、规格、品牌 
+      const mergedName = [origName, spec, brand].filter(Boolean).join(' ');
+      const id = genId();
+      insertStmt.run(id, origCode, mergedName, origCode, origName, spec, brand, '未归一', 'Excel导入', Date.now());
+      results.success++;
+    });
+  });
+
+  try {
+    tx();
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 crudRoutes(app, 'goods-std', 'goods_std', ['code','name','category','attrs','raw_count','mat_code'], ['code','name']);
 crudRoutes(app, 'mapping', 'mapping', ['goods_code','goods_name','mat_code','mat_name','type','method'], ['goods_code','goods_name','mat_code','mat_name']);
 
@@ -517,21 +629,169 @@ app.post('/api/mat-archive/merge', auth, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── Special: Bulk save unify results ─────────────
-app.post('/api/goods-unify/save-results', auth, (req, res) => {
-  const { stdGoods, rawGoods } = req.body;
-  const insertStd = db.prepare('INSERT OR REPLACE INTO goods_std (id,code,name,category,attrs,raw_count,mat_code,created_at) VALUES (?,?,?,?,?,?,?,?)');
-  const insertRaw = db.prepare('INSERT OR IGNORE INTO goods_raw (id,code,name,std_code,std_name,status,source,created_at) VALUES (?,?,?,?,?,?,?,?)');
-  const updateRaw = db.prepare('UPDATE goods_raw SET std_code=?, std_name=?, status=? WHERE name=?');
-  const saveAll = db.transaction(() => {
-    stdGoods.forEach(s => insertStd.run(s.id || genId(), s.code, s.name, s.category || '', s.attrs || '', s.raw_count || 0, s.mat_code || '', s.created_at || Date.now()));
-    rawGoods.forEach(r => {
-      const ex = db.prepare('SELECT id FROM goods_raw WHERE name=?').get(r.name);
-      if (ex) updateRaw.run(r.std_code, r.std_name, '已归一', r.name);
-      else insertRaw.run(r.id || genId(), r.code, r.name, r.std_code, r.std_name, '已归一', r.source || 'CSV导入', r.created_at || Date.now());
-    });
-  });
-  try { saveAll(); res.json({ ok: true }); } catch (e) { res.status(500).json({ error: e.message }); }
+// Step 3: Match Category
+app.post('/api/goods-unify/match-category', auth, async (req, res) => {
+  const { ids } = req.body;
+  if (!ids || !ids.length) return res.status(400).json({ error: '请选择商品' });
+
+  const cats = db.prepare("SELECT code, l1, l2, l3, l4, key_attrs FROM categories WHERE l4 IS NOT NULL").all();
+  const rawGoods = db.prepare(`SELECT id, name FROM goods_raw WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids);
+  
+  const results = [];
+  for (const item of rawGoods) {
+    // Recall Top 5 by Dice
+    const top5 = cats.map(c => ({ ...c, score: getDice(item.name, c.l4) }))
+      .sort((a, b) => b.score - a.score).slice(0, 5);
+    
+    // LLM Decide
+    const prompt = `请从以下5个分类中选择一个最适合商品“${item.name}”的末级分类（L4）。只需直接返回分类编码和分类名称，用“|”分隔，如“100101|笔记本”。如果都不匹配，请返回“未匹配”。\n候选项：\n${top5.map(c => `${c.code}|${c.l1}>${c.l2}>${c.l3}>${c.l4}`).join('\n')}`;
+    
+    try {
+      const resp = await POST('/api/ai/chat', { systemPrompt: '你是一个专业的商品分类专家。', userPrompt: prompt }, { internal: true });
+      const content = resp.content.trim();
+      if (content === '未匹配' || !content.includes('|')) {
+        db.prepare('UPDATE goods_raw SET category_code=?, category_name=?, match_status=? WHERE id=?')
+          .run(null, null, '分类未匹配', item.id);
+        results.push({ id: item.id, status: 'fail' });
+      } else {
+        const [code, name] = content.split('|');
+        db.prepare('UPDATE goods_raw SET category_code=?, category_name=?, match_status=? WHERE id=?')
+          .run(code, name, '分类已匹配', item.id);
+        results.push({ id: item.id, status: 'success', category: name });
+      }
+    } catch (e) {
+      results.push({ id: item.id, status: 'error', error: e.message });
+    }
+  }
+  res.json(results);
+});
+
+// Step 4: Extract Features
+app.post('/api/goods-unify/extract-features', auth, async (req, res) => {
+  const { ids } = req.body;
+  const list = db.prepare(`SELECT id, name, category_code, category_name FROM goods_raw WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids);
+  
+  const results = [];
+  for (const item of list) {
+    if (!item.category_code) { results.push({ id: item.id, status: 'skip', reason: '无分类' }); continue; }
+    const cat = db.prepare('SELECT key_attrs, l4 FROM categories WHERE code = ?').get(item.category_code);
+    const keyAttrs = cat?.key_attrs || '';
+    
+    const systemPrompt = `你是一个商品属性提取专家。给定商品名称和所属分类及其关键属性，请提取该商品的：品牌、核心词、型号、以及分类的关键属性。
+返回JSON格式：{"brand":"品牌","core_word":"核心词","model":"型号","attrs":{"属性名":"值"}}。
+如果某个属性在名称中未找到，请对应的值设为"unknown"。品牌请优先从名称中提取。`;
+    const userPrompt = `分类：${item.category_name}\n关键属性：${keyAttrs}\n商品名称：${item.name}`;
+
+    try {
+      const resp = await POST('/api/ai/chat', { systemPrompt, userPrompt }, { internal: true });
+      const data = JSON.parse(resp.content.replace(/```json?|```/g, '').trim());
+      
+      // Sink brand
+      if (data.brand && data.brand !== 'unknown') {
+        db.prepare('INSERT OR IGNORE INTO brands (id, name, created_at) VALUES (?, ?, ?)').run(genId(), data.brand, Date.now());
+      }
+      
+      // Propose Std Name: 品牌+核心词+型号+属性值
+      const attrVals = Object.values(data.attrs).filter(v => v && v !== 'unknown');
+      const stdName = [data.brand, data.core_word, data.model, ...attrVals].filter(v => v && v !== 'unknown').join(' ');
+      
+      const missing = [];
+      if (data.brand === 'unknown') missing.push('品牌');
+      if (data.core_word === 'unknown') missing.push('核心词');
+      Object.entries(data.attrs).forEach(([k, v]) => { if (v === 'unknown') missing.push(k); });
+      
+      db.prepare(`UPDATE goods_raw SET brand=?, core_word=?, model=?, spec=?, missing_attrs=?, std_name_proposed=?, match_status=? WHERE id=?`)
+        .run(data.brand, data.core_word, data.model, JSON.stringify(data.attrs), missing.join(','), stdName, missing.length ? '信息不全' : '属性已提取', item.id);
+      
+      results.push({ id: item.id, status: 'success', stdName, missing });
+    } catch (e) {
+      results.push({ id: item.id, status: 'error', error: e.message });
+    }
+  }
+  res.json(results);
+});
+
+// Step 5: Match Standard
+app.post('/api/goods-unify/match-standard', auth, async (req, res) => {
+  const { ids } = req.body;
+  const list = db.prepare(`SELECT * FROM goods_raw WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids);
+  
+  const results = [];
+  for (const item of list) {
+    if (!item.std_name_proposed) continue;
+    
+    const stds = db.prepare("SELECT code, name FROM goods_std").all();
+    const top5 = stds.map(s => ({ ...s, score: getDice(item.std_name_proposed, s.name) }))
+      .sort((a, b) => b.score - a.score).slice(0, 5);
+    
+    const prompt = `请判定商品“${item.std_name_proposed}”是否与以下标准商品中的某一个属于同一款。只需直接返回匹配到的标准商品编码，如“SP000101”。如果不匹配，请返回“不匹配”。\n候选项：\n${top5.map(s => `${s.code}|${s.name}`).join('\n')}`;
+    
+    try {
+      const resp = await POST('/api/ai/chat', { systemPrompt: '你是一个商品比对专家。', userPrompt: prompt }, { internal: true });
+      const content = resp.content.trim();
+      
+      let stdCode = '';
+      let stdName = '';
+      
+      if (content !== '不匹配' && content.startsWith('SP')) {
+        stdCode = content;
+        const s = db.prepare('SELECT name FROM goods_std WHERE code=?').get(stdCode);
+        stdName = s ? s.name : item.std_name_proposed;
+        db.prepare('UPDATE goods_std SET raw_count = raw_count + 1 WHERE code=?').run(stdCode);
+      } else {
+        // Create new standard product
+        const prefix = item.category_code || 'G';
+        const count = db.prepare('SELECT count(*) as c FROM goods_std WHERE code LIKE ?').get(`${prefix}%`).c;
+        stdCode = prefix + String(count + 1).padStart(4, '0');
+        stdName = item.std_name_proposed;
+        db.prepare('INSERT INTO goods_std (id, code, name, category, attrs, raw_count, created_at) VALUES (?,?,?,?,?,?,?)')
+          .run(genId(), stdCode, stdName, item.category_name, item.spec, 1, Date.now());
+      }
+      
+      db.prepare('UPDATE goods_raw SET std_code=?, std_name=?, status=?, match_status=? WHERE id=?')
+        .run(stdCode, stdName, '已归一', '已完成', item.id);
+      
+      results.push({ id: item.id, status: 'success', stdCode });
+    } catch (e) {
+      results.push({ id: item.id, status: 'error', error: e.message });
+    }
+  }
+  res.json(results);
+});
+
+// Step 6: Match Material
+app.post('/api/goods-unify/match-material', auth, async (req, res) => {
+  const { ids } = req.body; // std goods ids
+  const list = db.prepare(`SELECT id, code, name FROM goods_std WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids);
+  const mats = db.prepare('SELECT code, name FROM mat_archive').all();
+  
+  const results = [];
+  for (const item of list) {
+    const top5 = mats.map(m => ({ ...m, score: getDice(item.name, m.name) }))
+      .sort((a,b) => b.score - a.score).slice(0, 5);
+    
+    const prompt = `为商品“${item.name}”匹配最合适的底层物料档案。只需返回物料编码及名称，用“|”分隔，如“MAT000001|笔记本”。如果不匹配请回“不匹配”。\n候选项：\n${top5.map(m => `${m.code}|${m.name}`).join('\n')}`;
+    
+    try {
+      const resp = await POST('/api/ai/chat', { systemPrompt: '物料匹配专家', userPrompt: prompt }, { internal: true });
+      const content = resp.content.trim();
+      if (content !== '不匹配' && content.includes('|')) {
+        const [mCode, mName] = content.split('|');
+        db.prepare('UPDATE goods_std SET mat_code=? WHERE id=?').run(mCode, item.id);
+        
+        // Save to mapping table
+        db.prepare('INSERT OR REPLACE INTO mapping (id, goods_code, goods_name, mat_code, mat_name, method, created_at) VALUES (?,?,?,?,?,?,?)')
+          .run(genId(), item.code, item.name, mCode, mName, 'AI自动匹配', Date.now());
+        
+        results.push({ id: item.id, status: 'success', matCode: mCode });
+      } else {
+        results.push({ id: item.id, status: 'none' });
+      }
+    } catch (e) {
+      results.push({ id: item.id, status: 'error', error: e.message });
+    }
+  }
+  res.json(results);
 });
 
 // ── File Upload & Parse ───────────────────────────
