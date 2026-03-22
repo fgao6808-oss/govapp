@@ -18,6 +18,14 @@ const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data.db');
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 
+// ── Auto-seed from seed.sql if empty ─────────────
+const isNewDb = db.prepare("SELECT count(*) as c FROM sqlite_master WHERE type='table' AND name='mat_archive'").get().c === 0;
+if (isNewDb && fs.existsSync(path.join(__dirname, '..', 'seed.sql'))) {
+  console.log('🌱 Found seed.sql, importing initial data...');
+  const seed = fs.readFileSync(path.join(__dirname, '..', 'seed.sql'), 'utf8');
+  db.exec(seed);
+}
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
