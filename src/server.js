@@ -515,6 +515,48 @@ const normalizeBrandFormat = (brand) => {
   return zhVal || enVal || '';
 };
 
+const normalizeComparableValue = (value) => normalizeText(value).replace(/\s+/g, '');
+
+const getBrandIdentityTokens = (brand) => splitAliasTokens(normalizeBrandFormat(brand))
+  .map(token => normalizeComparableValue(token))
+  .filter(Boolean);
+
+const hasBrandConflict = (leftBrand, rightBrand) => {
+  const left = getBrandIdentityTokens(leftBrand);
+  const right = getBrandIdentityTokens(rightBrand);
+  if (!left.length || !right.length) return false;
+  return !left.some(a => right.some(b => a === b || a.includes(b) || b.includes(a)));
+};
+
+const hasModelConflict = (leftModel, rightModel) => {
+  const left = normalizeComparableValue(leftModel);
+  const right = normalizeComparableValue(rightModel);
+  if (!left || !right || left === 'unknown' || right === 'unknown') return false;
+  return !(left === right || left.includes(right) || right.includes(left));
+};
+
+const tokenOverlapRatio = (leftValue, rightValue) => {
+  const left = new Set(vectorTokens(leftValue));
+  const right = new Set(vectorTokens(rightValue));
+  if (!left.size || !right.size) return 0;
+  let overlap = 0;
+  left.forEach((token) => { if (right.has(token)) overlap += 1; });
+  return overlap / Math.max(left.size, right.size);
+};
+
+const canAutoRecognizeAsSameGood = (item, candidate) => {
+  if (hasBrandConflict(item.brand, candidate.brand)) return false;
+  if (hasModelConflict(item.model, candidate.model)) return false;
+
+  const itemCore = sanitizeImportedCell(item.core_word || '');
+  const candidateCore = sanitizeImportedCell(candidate.core_word || '');
+  if (itemCore && candidateCore && itemCore !== 'unknown' && candidateCore !== 'unknown') {
+    if (tokenOverlapRatio(itemCore, candidateCore) < 0.2) return false;
+  }
+
+  return true;
+};
+
 const extractEnglishBrandHintFromName = (name) => {
   const text = sanitizeImportedCell(name || '');
   if (!text) return '';
@@ -2155,7 +2197,7 @@ const runMatchStandard = async (ids) => {
 
     const sourceVector = item.attrs_vector || vectorToText(attrsObjectToText(item.attr_pairs || item.attrs_json || item.spec));
     const candidates = db.prepare(`
-      SELECT id, orig_code, orig_name, name, std_code, std_name, attrs_vector, attr_pairs, attrs_json
+      SELECT id, orig_code, orig_name, name, std_code, std_name, attrs_vector, attr_pairs, attrs_json, brand, core_word, model
       FROM goods_raw
       WHERE category_code = ?
         AND id != ?
@@ -2172,6 +2214,8 @@ const runMatchStandard = async (ids) => {
       .sort((a, b) => b.score - a.score)
       .slice(0, 20);
 
+    const sameEligibleTop20 = top20.filter(candidate => canAutoRecognizeAsSameGood(item, candidate));
+
     if (!top20.length) {
       db.prepare(`
         UPDATE goods_raw
@@ -2183,9 +2227,12 @@ const runMatchStandard = async (ids) => {
     }
 
     try {
-      const prompt = `请从候选列表中识别与目标商品“${item.orig_name || item.name}”同款的商品ID，必须只返回JSON数组，如["id1","id2"]；没有同款返回[]。\n目标商品属性对：${item.attr_pairs || item.attrs_json || '{}'}\n候选Top20：\n${top20.map(c => `${c.id}|${c.orig_code || ''}|${c.orig_name || c.name}|score:${c.score}|attrs:${c.attr_pairs || c.attrs_json || '{}'}`).join('\n')}`;
-      const resp = await requestAIChat({ systemPrompt: '你是商品同款识别专家，只允许从候选ID中选择。', userPrompt: prompt });
-      const sameIds = extractCandidateIds(resp.content, top20);
+      let sameIds = [];
+      if (sameEligibleTop20.length) {
+        const prompt = `请从候选列表中识别与目标商品“${item.orig_name || item.name}”同款的商品ID，必须只返回JSON数组，如["id1","id2"]；没有同款返回[]。\n同款判断要求：品牌不同不能判同款；型号明确且不一致不能判同款；核心词语义差异明显不能判同款。\n目标商品品牌：${item.brand || ''}\n目标商品核心词：${item.core_word || ''}\n目标商品型号：${item.model || ''}\n目标商品属性对：${item.attr_pairs || item.attrs_json || '{}'}\n候选列表：\n${sameEligibleTop20.map(c => `${c.id}|${c.orig_code || ''}|${c.orig_name || c.name}|brand:${c.brand || ''}|core:${c.core_word || ''}|model:${c.model || ''}|score:${c.score}|attrs:${c.attr_pairs || c.attrs_json || '{}'}`).join('\n')}`;
+        const resp = await requestAIChat({ systemPrompt: '你是商品同款识别专家，只允许从候选ID中选择。', userPrompt: prompt });
+        sameIds = extractCandidateIds(resp.content, sameEligibleTop20);
+      }
       const sameSet = new Set(sameIds);
 
       const sameItems = top20.filter(c => sameSet.has(c.id)).map(c => ({
