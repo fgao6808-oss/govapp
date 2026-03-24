@@ -2089,13 +2089,18 @@ const runExtractFeatures = async (ids) => {
     const keyAttrs = cat?.key_attrs || '';
     const keyAttrList = keyAttrs.split(',').map(s => s.trim()).filter(Boolean);
 
-    const systemPrompt = `你是一个商品属性提取专家。你只能依据“原始商品名称、原始规格、原始品牌”中明确出现的信息提取，不能使用经验推测、外部知识或补全。
+    const systemPrompt = `你是一个商品特征提取专家。你只能依据“原始商品名称、原始规格、原始品牌”中明确出现的信息提取，不能使用经验推测、外部知识或补全。
 核心词提取规则请严格遵循：${coreWordPromptSetting}
-请把核心词拆分为：品类核心词（表示商品属于什么品类）+功能核心词（表示用途/功能）。
-品牌请尽量同时提取中文和英文（如名称里有中英文品牌都要提取）。
-返回JSON：{"brand":"品牌","brand_zh":"中文品牌","brand_en":"英文品牌","category_core_word":"品类核心词","function_core_word":"功能核心词","model":"型号","attrs":{"属性名":"值"}}。
+你只允许返回4类结果：品牌、核心词、型号、属性对。
+其中：
+1. 品牌：若能明确识别中英文品牌，统一合并成“中文｜英文”；只有中文或只有英文则只返回一个。
+2. 核心词：返回一个最终核心词，不要拆字段，不要返回品类核心词、功能核心词等额外字段。
+3. 型号：只返回一个型号字段。
+4. 属性对 attrs：只能返回“分类关键属性”中列出的属性，严禁返回范围外属性。
+返回JSON严格使用以下格式：{"brand":"品牌","core_word":"核心词","model":"型号","attrs":{"属性名":"值"}}。
+除这4类结果外，不要返回任何其他字段。
 若无法从这些原始字段中明确提取，请填"unknown"。`;
-    const userPrompt = `分类：${item.category_name}\n分类关键属性：${keyAttrs || '无'}\n原始商品名称：${item.orig_name || item.name || ''}\n原始规格：${item.orig_spec || item.spec || ''}\n原始品牌：${item.orig_brand || item.brand || ''}`;
+    const userPrompt = `分类：${item.category_name}\n分类关键属性白名单：${keyAttrs || '无'}\n要求：attrs 中只能出现以上白名单属性，不能输出白名单之外的属性。\n原始商品名称：${item.orig_name || item.name || ''}\n原始规格：${item.orig_spec || item.spec || ''}\n原始品牌：${item.orig_brand || item.brand || ''}`;
 
     try {
       const resp = await requestAIChat({ systemPrompt, userPrompt });
@@ -2119,14 +2124,16 @@ const runExtractFeatures = async (ids) => {
       const functionCoreWord = sanitizeImportedCell(rawData.function_core_word || rawData.function_word || '');
       const fallbackCoreWord = sanitizeImportedCell(rawData.core_word || item.core_word || '');
       const combinedCoreWord = mergeCoreWords(categoryCoreWord, functionCoreWord, fallbackCoreWord);
+      const filteredAttrs = {};
       keyAttrList.forEach((key) => {
-        if (attrs[key] == null || String(attrs[key]).trim() === '') attrs[key] = 'unknown';
+        const rawValue = attrs[key];
+        filteredAttrs[key] = rawValue == null || String(rawValue).trim() === '' ? 'unknown' : sanitizeImportedCell(rawValue);
       });
       const data = {
         brand: normalizedBrand,
         core_word: combinedCoreWord,
         model: rawData.model || 'unknown',
-        attrs,
+        attrs: filteredAttrs,
       };
 
       if (data.brand) {

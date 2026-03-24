@@ -1659,9 +1659,6 @@ function renderCategoryCandidatesCell(row){
 }
 function renderGoodsAttrPairs(row){
   const pairs = [];
-  if(row.brand && row.brand !== 'unknown') pairs.push(`品牌: ${row.brand}`);
-  if(row.core_word && row.core_word !== 'unknown') pairs.push(`核心词: ${formatCoreWordDisplay(row.core_word)}`);
-  if(row.model && row.model !== 'unknown') pairs.push(`型号: ${row.model}`);
   let attrs = {};
   try { attrs = JSON.parse(row.attr_pairs || row.attrs_json || '{}'); } catch(e) { attrs = {}; }
   Object.keys(attrs || {}).forEach((key)=>{
