@@ -160,8 +160,12 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue);cursor:poin
       <span>Data Governance Platform</span>
     </div>
     <div class="login-err" id="login-err"></div>
-    <div class="form-group"><label>用户名</label><input type="text" id="inp-user" placeholder="请输入用户名"></div>
-    <div class="form-group"><label>密码</label><input type="password" id="inp-pwd" placeholder="请输入密码" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <form id="login-form" autocomplete="off" onsubmit="event.preventDefault();doLogin()">
+      <input type="text" tabindex="-1" autocomplete="off" style="display:none">
+      <input type="password" tabindex="-1" autocomplete="new-password" style="display:none">
+      <div class="form-group"><label>用户名</label><input type="text" id="inp-user" name="login_user_manual" placeholder="请输入用户名" value="" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" readonly onfocus="enableManualLoginInput(this)"></div>
+      <div class="form-group"><label>密码</label><input type="password" id="inp-pwd" name="login_password_manual" placeholder="请输入密码" value="" autocomplete="new-password" readonly onfocus="enableManualLoginInput(this)" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    </form>
     <button class="btn btn-primary" id="login-btn" style="width:100%;margin-top:8px;padding:10px" onclick="doLogin()">登 录</button>
 
   </div>
@@ -269,6 +273,11 @@ const exportCSV = (filename, headers, rows) => {
 };
 
 // ── Auth ─────────────────────────────────────────
+function enableManualLoginInput(el) {
+  if (!el) return;
+  el.removeAttribute('readonly');
+}
+
 async function doLogin() {
   const btn = $('login-btn');
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 登录中...';
