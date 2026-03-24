@@ -117,6 +117,37 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue);cursor:poin
 .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .form-group{margin-bottom:12px}
+.tbl-wrap.goods-raw-wrap{overflow:auto}
+.goods-raw-table{min-width:2450px}
+.goods-raw-table .gr-col-select{position:sticky;left:0;z-index:4;background:var(--bg2);min-width:44px;width:44px}
+.goods-raw-table thead .gr-col-select{background:var(--bg3);z-index:7}
+.goods-raw-table .gr-col-code{position:sticky;left:44px;z-index:4;background:var(--bg2);min-width:140px;width:140px}
+.goods-raw-table thead .gr-col-code{background:var(--bg3);z-index:7}
+.goods-raw-table .gr-col-name{position:sticky;left:184px;z-index:4;background:var(--bg2);min-width:280px;width:280px}
+.goods-raw-table thead .gr-col-name{background:var(--bg3);z-index:7}
+.goods-raw-table .gr-col-category{min-width:320px;width:320px}
+.goods-raw-table .gr-col-attrs{min-width:320px;width:320px}
+.goods-raw-table .gr-col-missing{min-width:220px;width:220px}
+.goods-raw-table .gr-col-status{position:sticky;right:100px;z-index:4;background:var(--bg2);min-width:110px;width:110px}
+.goods-raw-table thead .gr-col-status{background:var(--bg3);z-index:7}
+.goods-raw-table .gr-col-action{position:sticky;right:0;z-index:5;background:var(--bg2);min-width:100px;width:100px}
+.goods-raw-table thead .gr-col-action{background:var(--bg3);z-index:7}
+.goods-raw-table .gr-col-name,.goods-raw-table .gr-col-category,.goods-raw-table .gr-col-action{white-space:normal}
+.goods-raw-table .gr-col-select,.goods-raw-table .gr-col-code,.goods-raw-table .gr-col-name{box-shadow:1px 0 0 var(--border)}
+.goods-raw-table .gr-col-status,.goods-raw-table .gr-col-action{box-shadow:-1px 0 0 var(--border)}
+.goods-raw-table tbody tr:hover .gr-col-select,
+.goods-raw-table tbody tr:hover .gr-col-code,
+.goods-raw-table tbody tr:hover .gr-col-name,
+.goods-raw-table tbody tr:hover .gr-col-status,
+.goods-raw-table tbody tr:hover .gr-col-action{background:#fafbff}
+.goods-raw-attr-line{padding:2px 0;line-height:1.6}
+.goods-raw-attr-label{color:var(--text3);margin-right:4px}
+.goods-raw-missing-list{display:flex;flex-direction:column;gap:6px}
+.goods-raw-missing-chip{display:inline-flex;align-items:center;max-width:100%;padding:4px 8px;border-radius:8px;background:#fff1f2;border:1px solid #fecdd3;color:#e11d48;font-weight:600;line-height:1.4}
+.goods-raw-action-stack{display:flex;flex-direction:column;gap:6px}
+.goods-raw-action-stack .btn{width:80px;justify-content:center;align-self:center;padding:4px 4px;font-size:11px;min-height:28px;border-radius:6px}
+.goods-raw-action-stack .btn-outline{background:#fff}
+.goods-raw-action-main.btn-primary{box-shadow:0 1px 2px rgba(37,99,235,.18)}
 </style>
 </head>
 <body>
@@ -153,16 +184,15 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue);cursor:poin
       <div class="nav-group-label">品类管理</div>
       <div class="nav-sub">
         <div class="nav-item" data-page="cat-dir" onclick="navTo(this)">品类目录</div>
-        <div class="nav-item" data-page="cat-attr" onclick="navTo(this)">品类属性</div>
       </div>
       <div class="nav-group-label">商品管理</div>
       <div class="nav-sub">
         <div class="nav-item" data-page="goods-unify" onclick="navTo(this)">商品归一</div>
-        <div class="nav-item" data-page="brands" onclick="navTo(this)">品牌库</div>
         <div class="nav-item" data-page="goods-raw" onclick="navTo(this)">原始商品</div>
         <div class="nav-item" data-page="goods-std" onclick="navTo(this)">标准商品</div>
       </div>
       <div class="nav-item" data-page="mapping" onclick="navTo(this)">⇄ &nbsp;商品物料映射</div>
+      <div class="nav-item" data-page="brands" onclick="navTo(this)">🏷 &nbsp;品牌库</div>
       <div class="nav-item" data-page="settings" onclick="navTo(this)">⚙ &nbsp;系统设置</div>
     </nav>
   </div>
@@ -218,6 +248,17 @@ const toast = (msg, type='success') => {
 };
 const openMd = html => { document.getElementById('modal-box').innerHTML = html; document.getElementById('modal-bg').classList.add('open'); };
 const closeMd = () => document.getElementById('modal-bg').classList.remove('open');
+const esc = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const selectedRowIds = () => Array.from(document.querySelectorAll('.row-sel:checked')).map(c => c.value);
+const splitMultiLines = (value) => {
+  const text = String(value || '').trim();
+  if (!text) return [];
+  let rows = text.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+  if (rows.length === 1 && !/^data:image\//i.test(rows[0]) && /[,;；，]/.test(rows[0])) {
+    rows = rows[0].split(/[,;；，]+/).map(v => v.trim()).filter(Boolean);
+  }
+  return rows;
+};
 const $ = id => document.getElementById(id);
 const setHTML = (id, html) => { const el = $(id); if(el) el.innerHTML = html; };
 const exportCSV = (filename, headers, rows) => {
@@ -260,7 +301,7 @@ async function loadModelLabel() {
 }
 
 // ── Nav ───────────────────────────────────────────
-const PAGE_TITLES = {dashboard:'工作台','mat-gov':'物料管理 / 物料治理','mat-raw':'物料管理 / 原始物料','mat-arch':'物料管理 / 物料档案','cat-dir':'品类管理 / 品类目录','cat-attr':'品类管理 / 品类属性','goods-unify':'商品管理 / 商品归一','brands':'商品管理 / 品牌库','goods-raw':'商品管理 / 原始商品','goods-std':'商品管理 / 标准商品',mapping:'商品物料映射',settings:'系统设置'};
+const PAGE_TITLES = {dashboard:'工作台','mat-gov':'物料管理 / 物料治理','mat-raw':'物料管理 / 原始物料','mat-arch':'物料管理 / 物料档案','cat-dir':'品类管理 / 品类目录','cat-attr':'品类管理 / 品类属性','goods-unify':'商品管理 / 商品归一','brands':'品牌库','goods-raw':'商品管理 / 原始商品','goods-std':'商品管理 / 标准商品',mapping:'商品物料映射',settings:'系统设置'};
 function navTo(el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
@@ -276,18 +317,63 @@ function goPage(page) { navTo(document.querySelector(`.nav-item[data-page="${pag
 // DASHBOARD
 // ══════════════════════════════════════════════════
 async function pgDashboard() {
-  $('content').innerHTML = `<div class="hero"><div style="position:relative"><div style="font-size:11px;letter-spacing:.14em;color:rgba(147,210,255,.9);margin-bottom:8px;font-weight:500">▸ DATA GOVERNANCE PLATFORM</div><h1 style="font-size:20px;margin-bottom:10px;color:#fff;font-weight:700">物料及商品数据治理系统</h1><p style="color:rgba(255,255,255,.8);font-size:13px;line-height:1.9;max-width:640px">集成 AI 大模型能力，提供物料数据智能治理、商品信息标准化归一、品类体系构建及属性智能生成。支持 OpenAI / DeepSeek / 通义千问 / Claude 四种模型。</p></div></div><div id="stats-grid" class="grid4" style="margin-bottom:20px"><div class="stat-card" style="border-top:3px solid #ccc;text-align:center;color:var(--text3)">加载中...</div></div><div class="grid2" id="dash-lists"></div>`;
+  $('content').innerHTML = `<div class="hero"><div style="position:relative"><div style="font-size:11px;letter-spacing:.14em;color:rgba(147,210,255,.9);margin-bottom:8px;font-weight:500">▸ DATA GOVERNANCE PLATFORM</div><h1 style="font-size:20px;margin-bottom:10px;color:#fff;font-weight:700">物料及商品数据治理系统</h1><p style="color:rgba(255,255,255,.8);font-size:13px;line-height:1.9;max-width:640px">集成 AI 大模型能力，提供物料数据智能治理、商品信息标准化归一、品类体系构建及属性智能生成。支持 OpenAI / DeepSeek / 通义千问 / Claude 四种模型。</p></div></div><div id="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px"><div class="stat-card" style="border-top:3px solid #ccc;text-align:center;color:var(--text3)">加载中...</div></div><div id="dash-lists" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px"></div>`;
   try {
     const s = await GET('/stats');
+    const num = (v) => Number(v || 0).toLocaleString();
     $('stats-grid').innerHTML = `
-    <div class="stat-card" style="border-top:3px solid var(--blue)"><div style="font-size:12px;color:var(--text3)">物料档案总数</div><div class="stat-num" style="color:var(--blue)">${s.matArchive.toLocaleString()}</div><div class="stat-sub">标准化物料档案</div></div>
-    <div class="stat-card" style="border-top:3px solid var(--cyan)"><div style="font-size:12px;color:var(--text3)">标准商品档案</div><div class="stat-num" style="color:var(--cyan)">${s.goodsStd.toLocaleString()}</div><div class="stat-sub">归一后标准商品</div></div>
-    <div class="stat-card" style="border-top:3px solid var(--amber)"><div style="font-size:12px;color:var(--text3)">品类目录数</div><div class="stat-num" style="color:var(--amber)">${s.categories.toLocaleString()}</div><div class="stat-sub">末级品类条数</div></div>
-    <div class="stat-card" style="border-top:3px solid var(--red)"><div style="font-size:12px;color:var(--text3)">待治理物料</div><div class="stat-num" style="color:var(--red)">${s.matUntreated}</div><div class="stat-sub">原始物料未治理</div></div>`;
-    const [rawList, archList] = await Promise.all([GET('/mat-raw?q='), GET('/mat-archive?q=')]);
+    <div class="stat-card" style="border-top:3px solid var(--blue)"><div style="font-size:12px;color:var(--text3)">物料档案总数</div><div class="stat-num" style="color:var(--blue)">${num(s.matArchive)}</div><div class="stat-sub">标准化物料档案</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--red)"><div style="font-size:12px;color:var(--text3)">待治理物料</div><div class="stat-num" style="color:var(--red)">${num(s.matUntreated)}</div><div class="stat-sub">原始物料未治理</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--amber)"><div style="font-size:12px;color:var(--text3)">品类目录数</div><div class="stat-num" style="color:var(--amber)">${num(s.categories)}</div><div class="stat-sub">末级品类条数</div></div>
+    <div class="stat-card" style="border-top:3px solid var(--cyan)"><div style="font-size:12px;color:var(--text3)">标准商品档案</div><div class="stat-num" style="color:var(--cyan)">${num(s.goodsStd)}</div><div class="stat-sub">归一后标准商品</div></div>
+    <div class="stat-card" style="border-top:3px solid #c2410c"><div style="font-size:12px;color:var(--text3)">待归一问题商品</div><div class="stat-num" style="color:#c2410c">${num(s.pendingUnifyIssues)}</div><div class="stat-sub">未匹配/待补充/待审核</div></div>
+    <div class="stat-card" style="border-top:3px solid #0f766e"><div style="font-size:12px;color:var(--text3)">待映射物料商品</div><div class="stat-num" style="color:#0f766e">${num(s.pendingMaterialMappingGoods)}</div><div class="stat-sub">标准商品未关联物料</div></div>`;
+    const [rawResp, archResp, goodsRawResp, goodsStdResp] = await Promise.all([
+      GET('/mat-raw?page=1&limit=5&q='),
+      GET('/mat-archive?page=1&limit=5&q='),
+      GET('/goods-raw?page=1&limit=5&q='),
+      GET('/goods-std?page=1&limit=5&q=')
+    ]);
+    const rawList = rawResp.data || rawResp || [];
+    const archList = archResp.data || archResp || [];
+    const goodsRawList = goodsRawResp.data || goodsRawResp || [];
+    const goodsStdList = goodsStdResp.data || goodsStdResp || [];
+    const renderCard = (title, body, emptyHtml, page, btnText) => `
+      <div class="card">
+        <h2>${title}</h2>
+        ${body || emptyHtml}
+        <div style="margin-top:10px"><button class="btn btn-outline btn-sm" onclick="goPage('${page}')">${btnText} →</button></div>
+      </div>
+    `;
     $('dash-lists').innerHTML = `
-    <div class="card"><h2>📋 最新原始物料</h2>${rawList.slice(0,5).map(r=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px"><span style="font-family:monospace;font-size:12px;color:var(--blue);flex-shrink:0">${r.code}</span><span style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</span><span class="badge ${r.status==='已治理'?'b-green':'b-amber'}">${r.status}</span></div>`).join('')}${rawList.length===0?'<div class="empty"><div class="empty-icon">📋</div>暂无数据</div>':''}<div style="margin-top:10px"><button class="btn btn-outline btn-sm" onclick="goPage('mat-raw')">查看全部原始物料 →</button></div></div>
-    <div class="card"><h2>🗂 最新物料档案</h2>${archList.slice(0,5).map(a=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px"><span style="font-family:monospace;font-size:12px;color:var(--blue);flex-shrink:0">${a.code}</span><span style="flex:1;font-size:13px;font-weight:500">${a.name}</span><span class="badge b-blue">${a.category||'未分类'}</span></div>`).join('')}${archList.length===0?'<div class="empty"><div class="empty-icon">🗂</div>暂无数据</div>':''}<div style="margin-top:10px"><button class="btn btn-outline btn-sm" onclick="goPage('mat-arch')">查看全部物料档案 →</button></div></div>`;
+      ${renderCard(
+        '📋 最新原始物料',
+        rawList.map(r=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px"><span style="font-family:monospace;font-size:12px;color:var(--blue);flex-shrink:0">${r.code || '-'}</span><span style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name || '-'}</span><span class="badge ${r.status==='已治理'?'b-green':'b-amber'}">${r.status || '未治理'}</span></div>`).join(''),
+        '<div class="empty"><div class="empty-icon">📋</div>暂无数据</div>',
+        'mat-raw',
+        '查看全部原始物料'
+      )}
+      ${renderCard(
+        '🗂 最新物料档案',
+        archList.map(a=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px"><span style="font-family:monospace;font-size:12px;color:var(--blue);flex-shrink:0">${a.code || '-'}</span><span style="flex:1;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name || '-'}</span><span class="badge b-blue">${a.category || '未分类'}</span></div>`).join(''),
+        '<div class="empty"><div class="empty-icon">🗂</div>暂无数据</div>',
+        'mat-arch',
+        '查看全部物料档案'
+      )}
+      ${renderCard(
+        '🧾 最新原始商品',
+        goodsRawList.map(g=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px"><span style="font-family:monospace;font-size:12px;color:var(--blue);flex-shrink:0">${g.orig_code || g.code || '-'}</span><span style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.orig_name || g.name || '-'}</span><span class="badge ${g.status==='已归一'?'b-green':(g.status==='待补充属性'||g.status==='待审核'?'b-red':'b-amber')}">${g.status || '未归一'}</span></div>`).join(''),
+        '<div class="empty"><div class="empty-icon">🧾</div>暂无数据</div>',
+        'goods-raw',
+        '查看全部原始商品'
+      )}
+      ${renderCard(
+        '📦 最新标准商品',
+        goodsStdList.map(g=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px"><span style="font-family:monospace;font-size:12px;color:var(--blue);flex-shrink:0">${g.code || '-'}</span><span style="flex:1;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.name || '-'}</span><span class="badge ${g.mat_code?'b-green':'b-amber'}">${g.mat_code ? '已映射' : '待映射'}</span></div>`).join(''),
+        '<div class="empty"><div class="empty-icon">📦</div>暂无数据</div>',
+        'goods-std',
+        '查看全部标准商品'
+      )}`;
   } catch(e) { toast('加载失败: '+e.message,'error'); }
 }
 
@@ -351,46 +437,106 @@ async function uploadGovFile(file){
 }
 function pgBrands() {
   makeListPage({
-    api: '/api/brands',
-    title: '品牌库',
-    cols: [
-      {k:'id', n:'ID'},
-      {k:'name', n:'品牌名称'},
-      {k:'created_at', n:'创建时间', render: v => new Date(v).toLocaleString()}
-    ]
-  }, {
-    extraBtns: [
-      { n:'新增品牌', type:'primary', onclick:'addBrand()' }
+    title:'🏷 品牌库', apiPath:'/brands', searchPlaceholder:'搜索品牌编码/名称...',
+    columns:[
+      {label:'品牌名称', k:'name'},
+      {label:'Logo', k:'logo_urls'},
+      {label:'品牌编码', k:'code'},
+      {label:'创建时间', k:'created_at'}
     ],
-    rowActions: [
-      { n:'编辑', onclick:'editBrand(ROW)' },
-      { n:'删除', type:'danger', onclick:'delBrand(ROW)' }
-    ]
+    extraBtns:`<button class="btn btn-primary btn-sm" onclick="openBrandForm()">新增品牌</button>`,
+    usePagination:true,
+    rowRenderer:(r, usePagination)=>`<tr>
+      ${usePagination?`<td><input type="checkbox" class="row-sel" value="${r.id}" data-status="${esc(r.status||'')}"></td>`:''}
+      <td style="font-weight:600">${esc(r.name||'—')}</td>
+      <td>${renderBrandLogoCell(r.logo_urls)}</td>
+      <td style="font-family:monospace;color:var(--blue)">${esc(r.code||'—')}</td>
+      <td>${r.created_at ? new Date(r.created_at).toLocaleString() : '—'}</td>
+      <td style="display:flex;gap:5px">
+        <button class="btn btn-outline btn-sm" onclick="openBrandForm('${encodeURIComponent(JSON.stringify({id:r.id,code:r.code,name:r.name,logo_urls:r.logo_urls}))}')">编辑</button>
+        <button class="btn btn-red btn-sm" onclick="delBrand('${encodeURIComponent(JSON.stringify({id:r.id,name:r.name}))}')">删除</button>
+      </td>
+    </tr>`
   });
 }
 
-async function addBrand() {
-  const name = prompt('请输入品牌名称:');
-  if(!name) return;
+function renderBrandLogoCell(logoUrls){
+  const logos = splitMultiLines(logoUrls);
+  if(!logos.length) return '<span style="color:var(--text3)">—</span>';
+  const first = esc(logos[0]);
+  const countBadge = logos.length > 1 ? `<div style="font-size:11px;color:var(--text3);margin-top:4px">共 ${logos.length} 张</div>` : '';
+  return `<div style="display:flex;flex-direction:column;align-items:flex-start"><img src="${first}" alt="logo" style="width:42px;height:42px;object-fit:contain;border:1px solid var(--border);border-radius:8px;background:#fff;padding:4px" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block'"><span style="display:none;color:var(--text3)">加载失败</span>${countBadge}</div>`;
+}
+
+function openBrandForm(payload=''){
+  const row = payload ? JSON.parse(decodeURIComponent(payload)) : { code:'', name:'', logo_urls:'' };
+  const logoText = splitMultiLines(row.logo_urls).join('\n');
+  openMd(`<div class="modal-title">${row.id?'✏️ 编辑品牌':'➕ 新增品牌'}</div>
+  ${row.id
+    ? `<div class="form-group"><label>品牌编码</label><input type="text" value="${esc(row.code||'')}" disabled></div>`
+    : `<div class="form-group"><label>品牌编码</label><div style="padding:9px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;color:var(--text3)">新增时自动生成（默认规则：BR + 6位流水）</div></div>`
+  }
+  <div class="form-group"><label>品牌名称</label><input type="text" id="brand-name" value="${esc(row.name||'')}" placeholder="请输入品牌名称"></div>
+  <div class="form-group"><label>品牌 Logo</label>
+    <input type="file" id="brand-logo-files" accept="image/*" multiple onchange="onBrandLogoFilePick()">
+    <textarea id="brand-logos" style="height:110px;resize:vertical;margin-top:8px" placeholder="支持多个 logo，每行一条（可粘贴图片 URL）" oninput="refreshBrandLogoPreview()">${esc(logoText)}</textarea>
+    <div style="margin-top:6px;font-size:12px;color:var(--text3)">列表默认展示第一个 Logo</div>
+    <div id="brand-logo-preview" style="margin-top:8px"></div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">取消</button><button class="btn btn-primary" onclick="saveBrand('${row.id||''}')">保存</button></div>`);
+  refreshBrandLogoPreview();
+}
+
+async function onBrandLogoFilePick(){
+  const files = Array.from($('brand-logo-files')?.files || []);
+  if(!files.length) return;
+  try{
+    const uploaded = await Promise.all(files.map(async (file) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      const resp = await UPLOAD('/upload/brand-logo', fd);
+      return resp.url;
+    }));
+    const merged = [...splitMultiLines($('brand-logos').value), ...uploaded];
+    $('brand-logos').value = merged.join('\n');
+    refreshBrandLogoPreview();
+    $('brand-logo-files').value = '';
+  }catch(e){toast(e.message,'error');}
+}
+
+function removeBrandLogoAt(index){
+  const logos = splitMultiLines($('brand-logos').value);
+  logos.splice(index, 1);
+  $('brand-logos').value = logos.join('\n');
+  refreshBrandLogoPreview();
+}
+
+function refreshBrandLogoPreview(){
+  const logos = splitMultiLines($('brand-logos')?.value || '');
+  const html = logos.length
+    ? `<div style="display:flex;gap:8px;flex-wrap:wrap">${logos.map((logo, idx) => `<div style="position:relative;border:1px solid var(--border);border-radius:8px;padding:6px;background:#fff"><img src="${esc(logo)}" alt="logo-${idx+1}" style="width:52px;height:52px;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block'"><span style="display:none;font-size:11px;color:var(--text3)">无效</span><button class="btn btn-red btn-sm" style="position:absolute;right:-6px;top:-8px;line-height:1;padding:1px 6px" onclick="removeBrandLogoAt(${idx})">×</button></div>`).join('')}</div>`
+    : `<div style="font-size:12px;color:var(--text3)">暂无 Logo</div>`;
+  setHTML('brand-logo-preview', html);
+}
+
+async function saveBrand(id='') {
+  const name = $('brand-name').value.trim();
+  const logo_urls = splitMultiLines($('brand-logos').value).join('\n');
+  if(!name) return toast('请输入品牌名称', 'error');
   try {
-    await POST('/api/brands', { name });
-    toast('添加成功', 'success');
+    const resp = id
+      ? await PUT(`/brands/${id}`, { name, logo_urls })
+      : await POST('/brands', { name, logo_urls });
+    closeMd();
+    toast(id ? '修改成功' : `添加成功（编码：${resp.code || '自动生成'}）`, 'success');
     pgBrands();
   } catch(e) { toast(e.message, 'error'); }
 }
-async function editBrand(row) {
-  const name = prompt('请输入新品牌名称:', row.name);
-  if(!name || name===row.name) return;
-  try {
-    await PUT(`/api/brands/${row.id}`, { name });
-    toast('修改成功', 'success');
-    pgBrands();
-  } catch(e) { toast(e.message, 'error'); }
-}
-async function delBrand(row) {
+async function delBrand(payload) {
+  const row = JSON.parse(decodeURIComponent(payload));
   if(!confirm(`确定要删除品牌 "${row.name}" 吗？`)) return;
   try {
-    await DEL(`/api/brands/${row.id}`);
+    await DEL(`/brands/${row.id}`);
     toast('删除成功', 'success');
     pgBrands();
   } catch(e) { toast(e.message, 'error'); }
@@ -544,16 +690,22 @@ function dlTpl(filename,headers,rows){ exportCSV(filename,headers,rows); }
 // ══════════════════════════════════════════════════
 // 通用列表页生成器
 // ══════════════════════════════════════════════════
-function makeListPage({title, apiPath, columns, searchPlaceholder, filterOptions, filterField, actions, rowRenderer, extraBtns, usePagination}) {
+function makeListPage({title, apiPath, columns, searchPlaceholder, filterOptions, filterField, actions, rowRenderer, extraBtns, usePagination, showMassOps = true, extraFilters = [], wrapperClass = '', tableClass = '', actionHeaderClass = ''}) {
   let currPage = 1, pageSize = 100;
+  const extraFilterHtml = extraFilters.map((item, idx) => {
+    const inputId = item.id || `ls-extra-${idx}`;
+    const placeholder = item.placeholder || '请输入';
+    return `<div class="fi"><label>${esc(item.label || '筛选')}</label><input type="text" id="${inputId}" placeholder="${esc(placeholder)}" style="width:${item.width || 180}px" oninput="loadList(1)"></div>`;
+  }).join('');
   $('content').innerHTML = `
   <h1 class="pt">${title}</h1>
   <div class="fg">
     <div class="fi"><label>搜索</label><input type="text" id="ls-q" placeholder="${searchPlaceholder||'搜索...'}" style="width:200px" oninput="loadList(1)"></div>
     ${filterOptions?`<div class="fi"><label>筛选</label><select id="ls-f" onchange="loadList(1)"><option>全部</option>${filterOptions.map(o=>`<option>${o}</option>`).join('')}</select></div>`:''}
+    ${extraFilterHtml}
     <button class="btn btn-outline" onclick="loadList(1)">🔍</button>
     <div style="flex:1"></div>
-    ${usePagination?`<button class="btn btn-red btn-sm" onclick="clearAllData('${apiPath}')">⚠️ 一键删除所有</button><button class="btn btn-outline btn-sm" onclick="delSelected('${apiPath}')">批量删除勾选</button>`:''}
+    ${usePagination && showMassOps?`<button class="btn btn-red btn-sm" onclick="clearAllData('${apiPath}')">⚠️ 一键清空</button><button class="btn btn-outline btn-sm" onclick="delSelected('${apiPath}')">批量删除勾选</button>`:''}
     ${extraBtns||''}
   </div>
   <div id="list-body"></div>
@@ -568,6 +720,12 @@ function makeListPage({title, apiPath, columns, searchPlaceholder, filterOptions
     const f = $('ls-f')?.value||'全部';
     let url = `${apiPath}?q=${encodeURIComponent(q)}`;
     if(f!=='全部'&&filterField) url+=`&filterField=${filterField}&filter=${encodeURIComponent(f)}`;
+    extraFilters.forEach((item, idx) => {
+      const inputId = item.id || `ls-extra-${idx}`;
+      const field = item.field;
+      const value = $(inputId)?.value?.trim() || '';
+      if(field && value) url += `&${encodeURIComponent(field)}=${encodeURIComponent(value)}`;
+    });
     if(usePagination) url += `&page=${currPage}&limit=${pageSize}`;
     
     try{
@@ -575,7 +733,7 @@ function makeListPage({title, apiPath, columns, searchPlaceholder, filterOptions
       const rows = usePagination ? res.data : res;
       const total = usePagination ? res.total : rows.length;
       const el=$('list-body');if(!el)return;
-      el.innerHTML=`<div class="tbl-wrap"><table><thead><tr>${usePagination?`<th><input type="checkbox" id="sel-all" onclick="toggleAll(this.checked)"></th>`:''}${columns.map(c=>`<th>${c.label}</th>`).join('')}<th>操作</th></tr></thead><tbody>${rows.length===0?`<tr><td colspan="${columns.length+(usePagination?2:1)}"><div class="empty"><div class="empty-icon">📋</div>暂无数据</div></td></tr>`:rows.map(r=>rowRenderer(r, usePagination)).join('')}</tbody></table></div>`;
+      el.innerHTML=`<div class="tbl-wrap ${wrapperClass}"><table class="${tableClass}"><thead><tr>${usePagination?`<th class="${tableClass==='goods-raw-table'?'gr-col-select':''}"><input type="checkbox" id="sel-all" onclick="toggleAll(this.checked)"></th>`:''}${columns.map(c=>`<th class="${c.className||''}" style="${c.style||''}">${c.label}</th>`).join('')}<th class="${actionHeaderClass}">操作</th></tr></thead><tbody>${rows.length===0?`<tr><td colspan="${columns.length+(usePagination?2:1)}"><div class="empty"><div class="empty-icon">📋</div>暂无数据</div></td></tr>`:rows.map(r=>rowRenderer(r, usePagination)).join('')}</tbody></table></div>`;
       $('list-foot').textContent=`共 ${total} 条${usePagination?` · 当前第 ${currPage} 页`:''}`;
       if(usePagination) renderPager(total);
     }catch(e){toast('加载失败：'+e.message,'error');}
@@ -621,6 +779,7 @@ function pgMatRaw(){
   makeListPage({
     title:'📋 原始物料', apiPath:'/mat-raw', searchPlaceholder:'搜索编码/名称...', usePagination:true,
     filterOptions:['已治理','未治理'], filterField:'status',
+    extraFilters:[{label:'新物料编码', field:'new_code', placeholder:'按新物料编码筛选'}],
     columns:[{label:'编码'},{label:'名称'},{label:'规格'},{label:'新物料编码'},{label:'新物料名称'},{label:'状态'},{label:'来源'}],
     extraBtns:`<button class="btn btn-outline btn-sm" onclick="dlTpl('原始物料模板.csv',['编码','名称','规格型号'],[['RM001','304不锈钢弯头DN50','DN50 2寸']])">⬇ 模板</button>
     <button class="btn btn-outline btn-sm" onclick="$('rimport').click()">⬆ 导入</button>
@@ -663,7 +822,7 @@ function pgMatArch(){
     title:'🗂 物料档案进度', apiPath:'/mat-archive', searchPlaceholder:'搜索编码/名称...', usePagination:true,
     columns:[{label:'物料编码'},{label:'物料名称'},{label:'所属品类'},{label:'关联数'},{label:'相似物料'},{label:'操作'}],
     extraBtns:`<button class="btn btn-primary btn-sm" onclick="openAddArch()">+ 新增</button><button class="btn btn-outline btn-sm" onclick="exportArch()">⬇ 导出</button>`,
-    rowRenderer: (a, usePagination)=>`<tr>${usePagination?`<td><input type="checkbox" class="row-sel" value="${a.id}"></td>`:''}<td style="font-family:monospace;color:var(--blue)">${a.code}</td><td style="font-weight:600">${a.name}</td><td>${a.category?`<span class="badge b-blue">${a.category}</span>`:'—'}</td><td style="text-align:center">${a.raw_count||0}</td><td><span style="${a.similar_count > 0 ? 'color:var(--red);font-weight:600' : ''}">${a.similar_count || 0}</span>${a.similar_count > 0 ? ` <button class="btn btn-outline btn-sm" style="padding:2px 6px;font-size:11px;margin-left:4px" onclick="showSimilar('${a.id}','${a.name.replace(/'/g,'&#39;')}')">查看</button>` : ''}</td><td style="display:flex;gap:5px"><button class="btn btn-outline btn-sm" onclick="editArch('${a.id}','${a.code}','${a.name.replace(/'/g,'&#39;')}','${a.category||''}')">编辑</button><button class="btn btn-red btn-sm" onclick="delItem('/mat-archive','${a.id}')">删除</button></td></tr>`
+    rowRenderer: (a, usePagination)=>`<tr>${usePagination?`<td><input type="checkbox" class="row-sel" value="${a.id}"></td>`:''}<td style="font-family:monospace;color:var(--blue)">${a.code}</td><td style="font-weight:600">${a.name}</td><td>${a.category?`<span class="badge b-blue">${a.category}</span>`:'—'}</td><td style="text-align:center">${Number(a.raw_count||0)>0?`<button class="btn btn-outline btn-sm" onclick="openMatRawItems('${a.id}','${encodeURIComponent(a.name||'')}')">${Number(a.raw_count||0)}</button>`:'0'}</td><td><span style="${a.similar_count > 0 ? 'color:var(--red);font-weight:600' : ''}">${a.similar_count || 0}</span>${a.similar_count > 0 ? ` <button class="btn btn-outline btn-sm" style="padding:2px 6px;font-size:11px;margin-left:4px" onclick="showSimilar('${a.id}','${a.name.replace(/'/g,'&#39;')}')">查看</button>` : ''}</td><td style="display:flex;gap:5px"><button class="btn btn-outline btn-sm" onclick="editArch('${a.id}','${a.code}','${a.name.replace(/'/g,'&#39;')}','${a.category||''}')">编辑</button><button class="btn btn-red btn-sm" onclick="delItem('/mat-archive','${a.id}')">删除</button></td></tr>`
   });
 }
 async function openAddArch(){
@@ -688,6 +847,26 @@ function editArch(id,code,name,cat){
 }
 async function saveEditArch(id){ await PUT('/mat-archive/'+id,{code:$('ea1').value,name:$('ea2').value,category:$('ea4').value}); closeMd();loadList();toast('已保存'); }
 async function exportArch(){ const d=await GET('/mat-archive?q='); exportCSV('物料档案.csv',['物料编码','物料名称','相似物料'],d.map(a=>[a.code,a.name,a.similar_text])); toast('已导出'); }
+
+async function openMatRawItems(id, encodedName=''){
+  const title = decodeURIComponent(encodedName || '');
+  openMd(`<div class="modal-title">📋 关联原始物料</div>
+  <div id="mat-raw-list" style="max-height:360px;overflow-y:auto"><div class="empty">加载中...</div></div>
+  <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">关闭</button></div>`);
+  try{
+    const resp = await GET(`/mat-archive/${id}/raw-items`);
+    const list = resp.list || [];
+    const archive = resp.archive || {};
+    setHTML('mat-raw-list', list.length ? `
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">物料档案：${esc(archive.code || '')} ${esc(archive.name || title || '')}</div>
+      <div class="tbl-wrap"><table><thead><tr><th>原始编码</th><th>原始名称</th><th>规格</th><th>状态</th><th>来源</th></tr></thead><tbody>
+      ${list.map(row=>`<tr><td style="font-family:monospace;color:var(--blue)">${esc(row.code||'')}</td><td>${esc(row.name||'')}</td><td>${esc(row.spec||'—')}</td><td><span class="badge ${row.status==='已治理'?'b-green':'b-amber'}">${esc(row.status||'—')}</span></td><td style="color:var(--text3)">${esc(row.source||'—')}</td></tr>`).join('')}
+      </tbody></table></div>
+    ` : '<div class="empty">暂无关联原始物料</div>');
+  }catch(e){
+    setHTML('mat-raw-list', `<div class="empty">加载失败：${esc(e.message || '未知错误')}</div>`);
+  }
+}
 
 async function showSimilar(id, name) {
   openMd(`<div class="modal-title">🔍 寻找与 "${name}" 相似的物料</div>
@@ -1034,21 +1213,29 @@ async function genAttr(){
 // 商品归一 (Pipeline V2)
 // ══════════════════════════════════════════════════
 let unifyData = [];
+let goodsImportErrorLogs = [];
+let goodsImportSummary = null;
+let goodsUnifyRunItems = [];
 async function pgGoodsUnify() {
+  goodsImportErrorLogs = [];
+  goodsImportSummary = null;
+  goodsUnifyRunItems = [];
   $('content').innerHTML = `
-    <h1 class="pt">🔀 商品归一流水线</h1>
+    <h1 class="pt">🔀 商品归一</h1>
     <div class="steps" id="unify-steps">
       <div class="step active" id="us-1"><div class="step-num">1</div><span>上传附件</span></div>
       <div class="step-line"></div>
-      <div class="step" id="us-2"><div class="step-num">2</div><span>数据入库</span></div>
+      <div class="step" id="us-2"><div class="step-num">2</div><span>数据清洗</span></div>
       <div class="step-line"></div>
-      <div class="step" id="us-3"><div class="step-num">3</div><span>品类匹配</span></div>
+      <div class="step" id="us-3"><div class="step-num">3</div><span>数据入库</span></div>
       <div class="step-line"></div>
-      <div class="step" id="us-4"><div class="step-num">4</div><span>特征提取</span></div>
+      <div class="step" id="us-4"><div class="step-num">4</div><span>品类匹配</span></div>
       <div class="step-line"></div>
-      <div class="step" id="us-5"><div class="step-num">5</div><span>标准归一</span></div>
+      <div class="step" id="us-5"><div class="step-num">5</div><span>特征提取</span></div>
       <div class="step-line"></div>
-      <div class="step" id="us-6"><div class="step-num">6</div><span>物料匹配</span></div>
+      <div class="step" id="us-6"><div class="step-num">6</div><span>同款识别</span></div>
+      <div class="step-line"></div>
+      <div class="step" id="us-7"><div class="step-num">7</div><span>生成标准商品</span></div>
     </div>
     <div id="unify-main" class="card">
       <div id="u-step-content">
@@ -1060,9 +1247,17 @@ async function pgGoodsUnify() {
             <div style="font-size:11px;color:var(--text3);margin-top:4px">必填列：MRO商品编号、MRO商品名称、规格、品牌</div>
           </div>
           <input type="file" id="u-finp" accept=".csv" style="display:none" onchange="onUnifyFile(this)">
-          <div class="alert alert-blue" style="max-width:500px;margin:20px auto 0;text-align:left">
-            💡 <strong>归一化逻辑：</strong><br>
-            系统将自动合并名称、规格和品牌，并通过自研 Recall 算法召回相似品类、特征提取和标准品比对。
+          <div style="display:flex;justify-content:center;margin-top:18px">
+            <div style="max-width:820px;width:100%;background:var(--blue-light);border:1px solid #bfdbfe;border-radius:12px;padding:14px 16px;text-align:left;line-height:1.75;color:#1e3a8a">
+              <div style="font-weight:700;margin-bottom:6px">💡 归一化逻辑（最新）</div>
+              <div style="font-size:13px">
+                1) 上传后先做数据清洗与校验，仅有效数据入库，按原始字段保存（MRO商品编号、MRO商品名称、规格、品牌），商品编号去重。<br>
+                2) 品类匹配：向量召回 Top-5（阈值≥0.05）+ LLM 精准判定；未命中可人工选择分类后继续。<br>
+                3) 特征提取：仅对已分类商品执行，且只依据商品名称提取品牌（中文｜英文）、核心词、型号和品类关键属性。<br>
+                4) 商品归一：先按品类收窄候选，再用属性对向量检索 Top-20 + LLM 判断同款，输出同款/相似关系。<br>
+                5) 生成标准商品：同款聚合仅生成一个标准商品并统一关联；无同款则单独生成。物料匹配在“商品物料映射”中触发。
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1082,12 +1277,12 @@ async function onUnifyFile(inp) {
   const fd = new FormData(); fd.append('file', file);
   try {
     toast('正在解析文件...', 'info');
-    const r = await UPLOAD('/api/upload/csv', fd);
+    const r = await UPLOAD('/upload/csv', fd);
     unifyData = r.rows;
     $('u-step-content').innerHTML = `
       <div class="alert alert-green">✓ 文件已就绪：<strong>${file.name}</strong> (${r.count} 行)</div>
       <div style="margin-top:20px;text-align:center">
-        <button class="btn btn-primary btn-lg" onclick="step2Import()">🚀 开始执行流水线 (共6步)</button>
+        <button class="btn btn-primary btn-lg" onclick="step2Import()">🚀 开始执行流水线 (共7步)</button>
       </div>
     `;
   } catch (e) { toast(e.message, 'error'); }
@@ -1095,70 +1290,273 @@ async function onUnifyFile(inp) {
 
 function setStep(num) {
   document.querySelectorAll('#unify-steps .step').forEach(el=>el.className = 'step');
-  for(let i=1; i<=6; i++) {
+  for(let i=1; i<=7; i++) {
     const el = $(`us-${i}`);
     if(i < num) el.className = 'step done';
     else if(i === num) el.className = 'step active';
   }
 }
 
+function renderUnifyRunPanel(title, total, intro){
+  return `<h2>${title}</h2>
+    <div class="alert alert-blue">${esc(intro || '任务已创建，准备执行...')}</div>
+    <div class="progress-bar"><div class="progress-fill" id="u-prog" style="width:0%;background:linear-gradient(90deg,var(--blue),var(--cyan))"></div></div>
+    <div id="u-status" style="font-size:12px;color:var(--text3);margin-top:8px">待执行，共 ${Number(total||0)} 条</div>
+    <div id="u-log" style="margin-top:12px;max-height:300px;overflow-y:auto;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px;line-height:1.75"></div>`;
+}
+
+function setUnifyRunProgress(done, total, statusText){
+  const safeTotal = Math.max(Number(total || 0), 1);
+  const percent = Math.max(0, Math.min(100, Math.round((Number(done || 0) / safeTotal) * 100)));
+  if($('u-prog')) $('u-prog').style.width = `${percent}%`;
+  if($('u-status')) $('u-status').textContent = statusText || '';
+}
+
+function appendUnifyRunLog(text, color='var(--text2)'){
+  const log = $('u-log');
+  if(!log) return;
+  log.innerHTML += `<div style="color:${color}">${esc(text)}</div>`;
+  log.scrollTop = log.scrollHeight;
+}
+
+function getUnifyItemMeta(id, idx=0){
+  const item = goodsUnifyRunItems.find(v => v.id === id);
+  return item || { id, orig_code: `#${idx + 1}`, orig_name: '' };
+}
+
+function formatUnifyItemLabel(id, idx=0){
+  const item = getUnifyItemMeta(id, idx);
+  return `${item.orig_code || `#${idx + 1}`}${item.orig_name ? `｜${item.orig_name}` : ''}`;
+}
+
 async function step2Import() {
   setStep(2);
-  $('u-step-content').innerHTML = `<h2>第二步：数据入库与预处理</h2><div id="u-log" class="log-box">正在对原始商品进行编码查重及字段合并...</div>`;
+  $('u-step-content').innerHTML = renderUnifyRunPanel('第二步：数据清洗（先清洗再入库）', unifyData.length, '正在清洗非法字符、非标准格式，并校验有效数据...');
   try {
-    const r = await POST('/api/goods-unify/import', { rows: unifyData });
-    $('u-log').innerHTML += `<br><span style="color:var(--green)">✓ 处理完成。总计: ${r.total}, 成功入库: ${r.success}, 重复跳过: ${r.duplicate}</span>`;
-    
-    setTimeout(() => step3Category(unifyData.map(d=>d['MRO商品编号']||d['编码']).filter(Boolean)), 1500);
+    const r = await POST('/goods-unify/import', { rows: unifyData });
+    goodsImportErrorLogs = Array.isArray(r.error_logs) ? r.error_logs : [];
+    goodsUnifyRunItems = Array.isArray(r.insertedItems) ? r.insertedItems : [];
+    goodsImportSummary = {
+      total: Number(r.total || 0),
+      success: Number(r.success || 0),
+      invalid: Number(r.invalid || 0),
+      duplicate: Number(r.duplicate || 0),
+      valid: Number(r.valid || 0),
+      cleanedFields: Number(r.cleanedFields || 0)
+    };
+    setUnifyRunProgress(r.total || 0, r.total || 1, `清洗与入库完成：总计 ${r.total} 条，新增 ${r.success} 条`);
+    appendUnifyRunLog(`✓ 清洗完成：总计 ${r.total} 条，有效 ${r.valid} 条，清洗修正字段 ${r.cleanedFields} 个`, 'var(--green)');
+    appendUnifyRunLog(`✓ 入库结果：新增 ${r.success} 条，重复编码跳过 ${r.duplicate} 条，无效 ${r.invalid} 条`, 'var(--green)');
+    setTimeout(() => step3Store(r), 1200);
   } catch(e) { toast(e.message, 'error'); }
 }
 
-async function step3Category(origCodes) {
+function downloadGoodsImportErrorLog() {
+  if(!goodsImportErrorLogs.length) return toast('暂无错误日志可下载', 'info');
+  exportCSV(
+    '商品导入错误日志.csv',
+    ['Excel行号','原始商品编号','原始商品名称','原始规格','原始品牌','不符合导入条件说明'],
+    goodsImportErrorLogs.map(item => [
+      item.row_no || '',
+      item.raw_code || '',
+      item.raw_name || '',
+      item.raw_spec || '',
+      item.raw_brand || '',
+      item.reason || ''
+    ])
+  );
+  toast('错误日志已下载');
+}
+
+async function step3Store(importResult) {
+  const ids = importResult?.insertedIds || [];
   setStep(3);
-  $('u-step-content').innerHTML = `<h2>第三步：品类归属匹配 (Recall + LLM)</h2>
-    <div class="progress-bar"><div class="progress-fill" id="u-prog" style="width:0%"></div></div>
-    <div id="u-log" class="log-box">正在利用相似度召回 Top-5 分类并由 AI 进行最终判定...</div>`;
-  
-  try {
-    const res = await GET('/api/goods-raw?q=');
-    const ids = res.data.filter(r => origCodes.includes(r.orig_code)).map(r => r.id);
-    
-    await POST('/api/goods-unify/match-category', { ids });
-    $('u-log').innerHTML += `<br><span style="color:var(--green)">✓ 匹配完成</span>`;
-    
-    setTimeout(() => step4Feature(ids), 1500);
-  } catch(e) { toast(e.message, 'error'); }
+  $('u-step-content').innerHTML = renderUnifyRunPanel('第三步：有效数据入库', ids.length || importResult?.total || 0, '有效商品已入库，准备执行品类匹配...');
+  if(!ids.length) {
+    const allInvalid = Number(importResult?.invalid || 0) > 0 && Number(importResult?.valid || 0) === 0;
+    setUnifyRunProgress(importResult?.total || 0, importResult?.total || 1, '本次没有新增入库商品');
+    appendUnifyRunLog('! 本次没有新增数据（可能全部重复或无效）', 'var(--amber)');
+    if(allInvalid) {
+      appendUnifyRunLog('✗ 当前附件识别结果为全部无效，可下载错误日志查看每一行不符合导入条件的原因', 'var(--red)');
+    }
+    $('u-step-content').innerHTML += `<div style="margin-top:20px;text-align:center;display:flex;justify-content:center;gap:10px;flex-wrap:wrap">${allInvalid?`<button class="btn btn-primary" onclick="downloadGoodsImportErrorLog()">下载错误日志</button>`:''}<button class="btn btn-outline" onclick="pgGoodsUnify()">返回第一步</button></div>`;
+    return;
+  }
+  goodsUnifyRunItems.forEach((item, idx) => appendUnifyRunLog(`✓ [${idx + 1}/${ids.length}] 已入库 ${formatUnifyItemLabel(item.id, idx)}`, 'var(--green)'));
+  setUnifyRunProgress(ids.length, ids.length, `有效数据入库完成，共 ${ids.length} 条，准备进入品类匹配...`);
+  setTimeout(() => step4Category(ids), 1200);
 }
 
-async function step4Feature(ids) {
+async function step4Category(ids) {
   setStep(4);
-  $('u-step-content').innerHTML = `<h2>第四步：特征提取与品牌库沉淀</h2>
-    <div id="u-log" class="log-box">AI 正在提取品牌、核心词、型号及各项参数...</div>`;
-  
+  $('u-step-content').innerHTML = renderUnifyRunPanel('第四步：品类归属匹配', ids.length, '正在利用相似度召回 Top-5 分类并由 AI 进行最终判定...');
   try {
-    await POST('/api/goods-unify/extract-features', { ids });
-    $('u-log').innerHTML += `<br><span style="color:var(--green)">✓ 提取完成，识别到品牌已同步至库。</span>`;
-    $('u-log').innerHTML += `<br><div style="margin-top:10px"><button class="btn btn-primary btn-sm" onclick="step5Standard(['${ids.join("','")}'])">继续下一步</button></div>`;
+    let ok = 0, suspect = 0, fail = 0, err = 0;
+    for(let i=0;i<ids.length;i++){
+      const id = ids[i];
+      const label = formatUnifyItemLabel(id, i);
+      setUnifyRunProgress(i, ids.length, `正在执行 ${i + 1}/${ids.length}：${label}`);
+      appendUnifyRunLog(`→ [${i + 1}/${ids.length}] 开始匹配分类：${label}`, 'var(--blue)');
+      try{
+        const r = await POST('/goods-unify/match-category', { ids:[id] });
+        const item = Array.isArray(r) ? r[0] : null;
+        if(item?.status === 'success'){
+          ok++;
+          appendUnifyRunLog(`✓ ${label} -> ${item.category || '分类已匹配'}`, 'var(--green)');
+        }else if(item?.status === 'suspect'){
+          suspect++;
+          appendUnifyRunLog(`! ${label} 存在疑似分类，待人工确认`, 'var(--amber)');
+        }else if(item?.status === 'fail'){
+          fail++;
+          appendUnifyRunLog(`! ${label} 未匹配到分类`, 'var(--amber)');
+        }else if(item?.status === 'skip'){
+          appendUnifyRunLog(`· ${label} 跳过：${item.reason || '已有分类'}`, 'var(--text3)');
+        }else{
+          err++;
+          appendUnifyRunLog(`✗ ${label} 分类匹配失败：${item?.error || '未知错误'}`, 'var(--red)');
+        }
+      }catch(e){
+        err++;
+        appendUnifyRunLog(`✗ ${label} 分类匹配失败：${e.message}`, 'var(--red)');
+      }
+      setUnifyRunProgress(i + 1, ids.length, `分类匹配进度 ${i + 1}/${ids.length}`);
+    }
+    appendUnifyRunLog(`任务完成：成功 ${ok} 条，疑似 ${suspect} 条，未匹配 ${fail} 条，失败 ${err} 条`, 'var(--blue)');
+    setTimeout(() => step5Feature(ids), 1500);
   } catch(e) { toast(e.message, 'error'); }
 }
 
-async function step5Standard(ids) {
+async function step5Feature(ids) {
   setStep(5);
-  $('u-step-content').innerHTML = `<h2>第五步：标准归一匹配</h2><div id="u-log" class="log-box">正在执行 Top-5 判同逻辑...</div>`;
+  $('u-step-content').innerHTML = renderUnifyRunPanel('第五步：特征提取与品牌库沉淀', ids.length, 'AI 正在逐条提取品牌、核心词、型号及各项参数...');
   try {
-    await POST('/api/goods-unify/match-standard', { ids });
-    $('u-log').innerHTML += `<br><span style="color:var(--green)">✓ 归一化完成</span>`;
-    setTimeout(() => step6Material(ids), 1500);
+    let success = 0, skipped = 0, err = 0, hasMissing = 0;
+    for(let i=0;i<ids.length;i++){
+      const id = ids[i];
+      const label = formatUnifyItemLabel(id, i);
+      setUnifyRunProgress(i, ids.length, `正在执行 ${i + 1}/${ids.length}：${label}`);
+      appendUnifyRunLog(`→ [${i + 1}/${ids.length}] 开始提取特征：${label}`, 'var(--blue)');
+      try{
+        const r = await POST('/goods-unify/extract-features', { ids:[id] });
+        const item = Array.isArray(r) ? r[0] : null;
+        if(item?.status === 'success'){
+          success++;
+          if(Array.isArray(item.missing) && item.missing.length){
+            hasMissing++;
+            appendUnifyRunLog(`! ${label} 提取完成，但缺失属性：${item.missing.join('、')}`, 'var(--amber)');
+          }else{
+            appendUnifyRunLog(`✓ ${label} 提取完成`, 'var(--green)');
+          }
+        }else if(item?.status === 'skip'){
+          skipped++;
+          appendUnifyRunLog(`· ${label} 跳过：${item.reason || '无分类'}`, 'var(--text3)');
+        }else{
+          err++;
+          appendUnifyRunLog(`✗ ${label} 特征提取失败：${item?.error || '未知错误'}`, 'var(--red)');
+        }
+      }catch(e){
+        err++;
+        appendUnifyRunLog(`✗ ${label} 特征提取失败：${e.message}`, 'var(--red)');
+      }
+      setUnifyRunProgress(i + 1, ids.length, `特征提取进度 ${i + 1}/${ids.length}`);
+    }
+    appendUnifyRunLog(`任务完成：成功 ${success} 条，跳过 ${skipped} 条，失败 ${err} 条`, 'var(--blue)');
+    if(hasMissing) appendUnifyRunLog(`! ${hasMissing} 条存在属性缺失，请在“原始商品”中补全后重跑归一`, 'var(--amber)');
+    appendUnifyRunLog('→ 正在自动进入下一步：同款识别...', 'var(--blue)');
+    setTimeout(() => step6Standard(ids), 1200);
   } catch(e) { toast(e.message, 'error'); }
 }
 
-async function step6Material(ids) {
+async function step6Standard(ids) {
   setStep(6);
-  $('u-step-content').innerHTML = `<h2>第六步：物料档案自动挂载</h2><div id="u-log" class="log-box">匹配底层物料档案...</div>`;
+  $('u-step-content').innerHTML = renderUnifyRunPanel('第六步：同款识别（向量Top20 + LLM）', ids.length, '正在逐条执行同款识别...');
   try {
-    // Standard goods might have different ids, but let's just finish the demo flow
-    $('u-log').innerHTML += `<br><span style="color:var(--green)">✓ 自动挂载完成</span>`;
-    $('u-step-content').innerHTML += `<div style="margin-top:20px;text-align:center"><button class="btn btn-primary" onclick="goPage('goods-std')">🎉 查看最终标准商品库</button></div>`;
+    let done = 0, skipped = 0, err = 0, sameTotal = 0;
+    for(let i=0;i<ids.length;i++){
+      const id = ids[i];
+      const label = formatUnifyItemLabel(id, i);
+      setUnifyRunProgress(i, ids.length, `正在执行 ${i + 1}/${ids.length}：${label}`);
+      appendUnifyRunLog(`→ [${i + 1}/${ids.length}] 开始同款识别：${label}`, 'var(--blue)');
+      try{
+        const r = await POST('/goods-unify/match-standard', { ids:[id] });
+        const item = Array.isArray(r) ? r[0] : null;
+        if(item?.status === 'success'){
+          done++;
+          sameTotal += Number(item.sameCount || 0);
+          appendUnifyRunLog(`✓ ${label} 同款识别完成，同款 ${Number(item.sameCount||0)} 条，相似 ${Number(item.similarCount||0)} 条`, 'var(--green)');
+        }else if(item?.status === 'skip'){
+          skipped++;
+          appendUnifyRunLog(`· ${label} 跳过：${item.reason || '条件不足'}`, 'var(--text3)');
+        }else{
+          err++;
+          appendUnifyRunLog(`✗ ${label} 同款识别失败：${item?.error || '未知错误'}`, 'var(--red)');
+        }
+      }catch(e){
+        err++;
+        appendUnifyRunLog(`✗ ${label} 同款识别失败：${e.message}`, 'var(--red)');
+      }
+      setUnifyRunProgress(i + 1, ids.length, `同款识别进度 ${i + 1}/${ids.length}`);
+    }
+    appendUnifyRunLog(`任务完成：成功 ${done} 条，跳过 ${skipped} 条，失败 ${err} 条`, 'var(--blue)');
+    appendUnifyRunLog(`✓ 识别到同款关联 ${sameTotal} 条`, 'var(--green)');
+    setTimeout(() => step7Generate(ids), 1500);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function step7Generate(ids) {
+  setStep(7);
+  $('u-step-content').innerHTML = renderUnifyRunPanel('第七步：生成标准商品', ids.length, '正在按“同款聚合”逐条创建/复用标准商品...');
+  try {
+    let created = 0, reused = 0, skipped = 0, err = 0, normalizedRows = 0, normalizeFailedRows = 0;
+    for(let i=0;i<ids.length;i++){
+      const id = ids[i];
+      const label = formatUnifyItemLabel(id, i);
+      setUnifyRunProgress(i, ids.length, `正在执行 ${i + 1}/${ids.length}：${label}`);
+      appendUnifyRunLog(`→ [${i + 1}/${ids.length}] 开始生成标准商品：${label}`, 'var(--blue)');
+      try{
+        const r = await POST('/goods-unify/generate-standard', { ids:[id] });
+        const item = Array.isArray(r?.results) ? r.results[0] : null;
+        const s = r.summary || {};
+        created += Number(s.created || 0);
+        reused += Number(s.reused || 0);
+        skipped += Number(s.skipped || 0);
+        normalizedRows += Number(s.normalizedRows || 0);
+        normalizeFailedRows += Number(s.normalizeFailedRows || 0);
+        if(item?.action === 'create'){
+          appendUnifyRunLog(`✓ ${label} 已新建标准商品 ${item.stdCode || ''}`, 'var(--green)');
+        }else if(item?.action === 'reuse'){
+          appendUnifyRunLog(`✓ ${label} 复用已有标准商品 ${item.stdCode || ''}`, 'var(--green)');
+        }else{
+          appendUnifyRunLog(`· ${label} 跳过：${item?.reason || '分类或属性不完整'}`, 'var(--text3)');
+        }
+      }catch(e){
+        err++;
+        normalizeFailedRows++;
+        appendUnifyRunLog(`✗ ${label} 生成标准商品失败：${e.message}`, 'var(--red)');
+      }
+      setUnifyRunProgress(i + 1, ids.length, `生成标准商品进度 ${i + 1}/${ids.length}`);
+    }
+    const s = { created, reused, skipped, normalizedRows, normalizeFailedRows };
+    const report = goodsImportSummary || { total: 0, success: 0, invalid: 0, duplicate: 0 };
+    const importFailed = Number(report.invalid || 0) + Number(report.duplicate || 0);
+    const hasFailedRows = importFailed > 0;
+    appendUnifyRunLog(`任务完成：新建 ${s.created||0} 组，复用已有 ${s.reused||0} 组，跳过 ${s.skipped||0} 组，失败 ${err} 条`, 'var(--blue)');
+    $('u-step-content').innerHTML += `
+      <div style="margin-top:18px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 18px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px">执行报告</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+          <div class="card-sm"><div style="font-size:12px;color:var(--text3)">导入模板行数</div><div style="font-size:24px;font-weight:700;color:var(--blue)">${report.total}</div></div>
+          <div class="card-sm"><div style="font-size:12px;color:var(--text3)">成功导入</div><div style="font-size:24px;font-weight:700;color:var(--green)">${report.success}</div></div>
+          <div class="card-sm"><div style="font-size:12px;color:var(--text3)">导入失败</div><div style="font-size:24px;font-weight:700;color:var(--red)">${importFailed}</div></div>
+          <div class="card-sm"><div style="font-size:12px;color:var(--text3)">归一成功</div><div style="font-size:24px;font-weight:700;color:var(--cyan)">${Number(s.normalizedRows || 0)}</div></div>
+          <div class="card-sm"><div style="font-size:12px;color:var(--text3)">归一失败</div><div style="font-size:24px;font-weight:700;color:#c2410c">${Number(s.normalizeFailedRows || 0)}</div></div>
+        </div>
+        ${hasFailedRows?`<div class="alert alert-red" style="margin-top:12px">本次有 ${importFailed} 行导入失败（含重复跳过），可下载错误日志查看具体原因。</div>`:''}
+      </div>
+      <div style="margin-top:20px;text-align:center;display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
+        ${hasFailedRows?`<button class="btn btn-outline" onclick="downloadGoodsImportErrorLog()">下载错误日志</button>`:''}
+        <button class="btn btn-primary" onclick="goPage('goods-raw')">🎉 查看原始商品</button>
+      </div>`;
   } catch(e) { toast(e.message, 'error'); }
 }
 
@@ -1168,54 +1566,362 @@ async function step6Material(ids) {
 function pgGoodsRaw(){
   makeListPage({
     title:'📦 原始商品', apiPath:'/goods-raw', searchPlaceholder:'搜索编码/名称/品牌...',
-    filterOptions:['全部','已归一','未归一'], filterField:'status',
+    filterOptions:['全部','已归一','未归一','待补充属性','待生成标准商品','待审核'], filterField:'status',
+    wrapperClass:'goods-raw-wrap',
+    tableClass:'goods-raw-table',
+    actionHeaderClass:'gr-col-action',
     columns:[
-      {label:'原始编码', k:'orig_code'},
-      {label:'原始名称', k:'orig_name'},
+      {label:'原始编码', k:'orig_code', className:'gr-col-code'},
+      {label:'原始名称', k:'orig_name', className:'gr-col-name'},
+      {label:'原始规格', k:'orig_spec'},
+      {label:'原始品牌', k:'orig_brand'},
       {label:'提取品牌', k:'brand'},
-      {label:'品类匹配', k:'category_name'},
-      {label:'提取状态', k:'match_status'},
+      {label:'核心词', k:'core_word'},
+      {label:'型号', k:'model'},
+      {label:'品类匹配', k:'category_name', className:'gr-col-category'},
+      {label:'疑似分类数', k:'category_candidates'},
+      {label:'商品属性对', k:'attr_pairs', className:'gr-col-attrs'},
+      {label:'缺失属性', k:'missing_attrs', className:'gr-col-missing'},
+      {label:'同款数', k:'same_count'},
+      {label:'相似商品数', k:'similar_count'},
+      {label:'流程状态', k:'match_status'},
       {label:'标准编码', k:'std_code'},
-      {label:'状态', k:'status'}
+      {label:'状态', k:'status', className:'gr-col-status'}
     ],
-    extraBtns:`<button class="btn btn-primary btn-sm" onclick="goPage('goods-unify')">执行归一</button><button class="btn btn-outline btn-sm" onclick="exportFullRaw()">⬇ 全量导出</button>`,
-    rowRenderer:r=>`<tr>
-      <td style="font-family:monospace;color:var(--blue)">${r.orig_code||'—'}</td>
-      <td title="${r.orig_name}">${r.orig_name||'—'}</td>
-      <td>${r.brand||'—'}</td>
-      <td><span class="badge b-blue">${r.category_name||'未匹配'}</span></td>
-      <td><span class="badge ${r.missing_attrs?'b-red':'b-gray'}">${r.match_status||'未提取'}</span></td>
-      <td style="font-family:monospace">${r.std_code||'—'}</td>
-      <td><span class="badge ${r.status==='已归一'?'b-green':'b-amber'}">${r.status}</span></td>
-      <td><button class="btn btn-red btn-sm" onclick="delItem('/goods-raw','${r.id}')">删除</button></td>
+    extraBtns:`<button class="btn btn-primary btn-sm" onclick="batchUnifySelected()">批量归一</button><button class="btn btn-outline btn-sm" onclick="exportFullRaw()">⬇ 全量导出</button>`,
+    usePagination:true,
+    rowRenderer:(r, usePagination)=>`<tr>
+      ${usePagination?`<td class="gr-col-select"><input type="checkbox" class="row-sel" value="${r.id}" data-status="${esc(r.status||'')}"></td>`:''}
+      <td class="gr-col-code" style="font-family:monospace;color:var(--blue)">${r.orig_code||'—'}</td>
+      <td class="gr-col-name" title="${esc(r.orig_name||'')}">${esc(r.orig_name||'—')}</td>
+      <td title="${esc(r.orig_spec||r.spec||'')}">${esc(r.orig_spec||r.spec||'—')}</td>
+      <td>${esc(r.orig_brand||'—')}</td>
+      <td>${esc(r.brand||'—')}</td>
+      <td>${esc(formatCoreWordDisplay(r.core_word)||'—')}</td>
+      <td>${esc(r.model||'—')}</td>
+      <td class="gr-col-category"><span class="badge b-blue">${esc(r.category_name||'未匹配')}</span></td>
+      <td>${renderCategoryCandidatesCell(r)}</td>
+      <td class="gr-col-attrs">${renderGoodsAttrPairs(r)}</td>
+      <td class="gr-col-missing">${renderMissingAttrs(r.missing_attrs)}</td>
+      <td>${Number(r.same_count||0)>0?`<button class="btn btn-outline btn-sm" onclick="openGoodsRelations('${r.id}','same')">${Number(r.same_count||0)}</button>`:'0'}</td>
+      <td>${Number(r.similar_count||0)>0?`<button class="btn btn-outline btn-sm" onclick="openGoodsRelations('${r.id}','similar')">${Number(r.similar_count||0)}</button>`:'0'}</td>
+      <td><span class="badge ${r.match_status==='待审核'?'b-amber':(r.missing_attrs?'b-red':'b-gray')}">${esc(r.match_status||'未提取')}</span></td>
+      <td style="font-family:monospace">${esc(r.std_code||'—')}</td>
+      <td class="gr-col-status"><span class="badge ${r.status==='已归一'?'b-green':(r.status==='待审核'?'b-red':'b-amber')}">${esc(r.status||'未归一')}</span></td>
+      <td class="gr-col-action">${renderGoodsActions(r)}</td>
     </tr>`
   });
 }
+async function batchUnifySelected(){
+  const selected = Array.from(document.querySelectorAll('.row-sel:checked'));
+  const ids = selected.map(c => c.value);
+  if(!ids.length) return toast('请先勾选原始商品','info');
+  const unifiedCount = selected.filter(c => (c.dataset.status || '').trim() === '已归一').length;
+  if(unifiedCount > 0) return toast(`已归一商品不可再次发起归一，请取消勾选后重试（共 ${unifiedCount} 条）`, 'error');
+  await triggerGoodsUnify(ids);
+}
+async function triggerGoodsUnify(ids){
+  try{
+    toast('正在执行归一...','info');
+    const resp = await POST('/goods-unify/process-selected', { ids });
+    const s = resp.summary || {};
+    toast(`完成：分类${s.categoryMatched||0}条，提取${s.featureExtracted||0}条，同款识别${s.sameDetected||0}条，归一${s.goodsUnified||0}组（新建${s.stdCreated||0}/复用${s.stdReused||0}）`);
+    if(typeof loadList === 'function') loadList();
+  }catch(e){toast(e.message,'error');}
+}
+let goodsCategoryLeavesCache = [];
+function parseCategoryCandidates(value){
+  if(!value) return [];
+  try{
+    const list = JSON.parse(value);
+    return Array.isArray(list) ? list : [];
+  }catch(e){
+    return [];
+  }
+}
+function filterGoodsCategoryCandidates(list, currentCategoryCode=''){
+  const current = String(currentCategoryCode || '').trim();
+  return (Array.isArray(list) ? list : []).filter(item => item && item.code && item.code !== current);
+}
+function renderCategoryCandidatesCell(row){
+  const list = filterGoodsCategoryCandidates(parseCategoryCandidates(row.category_candidates), row.category_code);
+  if(!list.length) return '0';
+  return `<button class="btn btn-outline btn-sm" onclick="openGoodsCategoryCandidates('${row.id}','${encodeURIComponent(JSON.stringify(list))}','${esc(row.category_code||'')}')">${list.length}</button>`;
+}
+function renderGoodsAttrPairs(row){
+  const pairs = [];
+  if(row.brand && row.brand !== 'unknown') pairs.push(`品牌: ${row.brand}`);
+  if(row.core_word && row.core_word !== 'unknown') pairs.push(`核心词: ${formatCoreWordDisplay(row.core_word)}`);
+  if(row.model && row.model !== 'unknown') pairs.push(`型号: ${row.model}`);
+  let attrs = {};
+  try { attrs = JSON.parse(row.attr_pairs || row.attrs_json || '{}'); } catch(e) { attrs = {}; }
+  Object.keys(attrs || {}).forEach((key)=>{
+    const value = attrs[key];
+    if(value && value !== 'unknown') pairs.push(`${key}: ${value}`);
+  });
+  if(!pairs.length) return '—';
+  return pairs.map(line => {
+    const [label, ...rest] = String(line).split(':');
+    const value = rest.join(':').trim();
+    return `<div class="goods-raw-attr-line"><span class="goods-raw-attr-label">${esc(label)}:</span><span>${esc(value)}</span></div>`;
+  }).join('');
+}
+function renderMissingAttrs(value){
+  const items = String(value || '')
+    .split(/[，,]/)
+    .map(v => v.trim())
+    .filter(Boolean);
+  if(!items.length) return '—';
+  return `<div class="goods-raw-missing-list">${items.map(item => `<span class="goods-raw-missing-chip">${esc(item)}</span>`).join('')}</div>`;
+}
+function renderGoodsActions(row){
+  const attrPayload = encodeURIComponent(JSON.stringify({
+    id:row.id,
+    brand:row.brand,
+    core_word:row.core_word,
+    model:row.model,
+    attrs_json:row.attrs_json,
+    category_code:row.category_code,
+    category_name:row.category_name,
+    missing_attrs:row.missing_attrs
+  }));
+  const reviewPayload = encodeURIComponent(JSON.stringify({
+    id:row.id,
+    orig_code:row.orig_code,
+    orig_name:row.orig_name,
+    std_name_proposed:row.std_name_proposed,
+    category_name:row.category_name,
+    review_reason:row.review_reason,
+    review_score:row.review_score,
+    review_candidates:row.review_candidates
+  }));
+  const categoryLabel = row.category_code ? '改分类' : '选分类';
+  const buttons = [];
+
+  if (row.status === '待审核') {
+    buttons.push(`<button class="btn btn-primary btn-sm goods-raw-action-main" onclick="openGoodsReview('${reviewPayload}')">审核处理</button>`);
+    buttons.push(`<button class="btn btn-outline btn-sm" onclick="openGoodsCategoryPicker('${row.id}','${esc(row.category_code||'')}','${esc(row.category_name||'')}')">${categoryLabel}</button>`);
+  } else if (row.missing_attrs) {
+    buttons.push(`<button class="btn btn-primary btn-sm goods-raw-action-main" onclick="openGoodsAttrEditor('${attrPayload}')">补全属性</button>`);
+    buttons.push(`<button class="btn btn-outline btn-sm" onclick="openGoodsCategoryPicker('${row.id}','${esc(row.category_code||'')}','${esc(row.category_name||'')}')">${categoryLabel}</button>`);
+  } else if (row.status !== '已归一') {
+    buttons.push(`<button class="btn btn-primary btn-sm goods-raw-action-main" onclick="triggerGoodsUnify(['${row.id}'])">发起归一</button>`);
+    buttons.push(`<button class="btn btn-outline btn-sm" onclick="openGoodsCategoryPicker('${row.id}','${esc(row.category_code||'')}','${esc(row.category_name||'')}')">${categoryLabel}</button>`);
+  } else {
+    buttons.push(`<button class="btn btn-outline btn-sm" onclick="openGoodsCategoryPicker('${row.id}','${esc(row.category_code||'')}','${esc(row.category_name||'')}')">${categoryLabel}</button>`);
+  }
+
+  buttons.push(`<button class="btn btn-red btn-sm" onclick="delItem('/goods-raw','${row.id}')">删除</button>`);
+  return `<div class="goods-raw-action-stack">${buttons.join('')}</div>`;
+}
+function formatCoreWordDisplay(value){
+  const text = String(value || '').trim();
+  if(!text || text === 'unknown') return text;
+  if(!text.includes('+')) return text;
+  const parts = text.split('+').map(v => v.trim()).filter(Boolean);
+  if(parts.length !== 2) return parts.join('');
+  const [a, b] = parts;
+  if(/[0-9一二三四五六七八九十单双多]/.test(b)) return `${b}${a}`;
+  return `${a}${b}`;
+}
+async function openGoodsCategoryCandidates(id, encoded, currentCategoryCode=''){
+  const list = filterGoodsCategoryCandidates(parseCategoryCandidates(decodeURIComponent(encoded || '')), currentCategoryCode);
+  if(!list.length) return toast('暂无疑似分类','info');
+  const rows = list.map((c, idx)=>`<tr>
+      <td>${idx + 1}</td>
+      <td style="font-family:monospace;color:var(--blue)">${esc(c.code||'')}</td>
+      <td>${esc(c.name||'')}</td>
+      <td>${Number(c.score||0).toFixed(4)}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="setGoodsCategoryByCode('${id}','${encodeURIComponent(c.code||'')}',false,true)">选用此分类</button></td>
+    </tr>`).join('');
+  openMd(`<div class="modal-title">🔎 疑似分类候选</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>#</th><th>分类编码</th><th>分类名称</th><th>相似度</th><th>操作</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeMd()">关闭</button>
+      <button class="btn btn-outline" onclick="closeMd();openGoodsCategoryPicker('${id}')">手动搜索分类</button>
+    </div>`);
+}
+function renderGoodsCategoryOptions(currentCode=''){
+  const select = $('gr-cat');
+  if(!select) return;
+  if(currentCode) select.dataset.currentCode = currentCode;
+  const activeCode = select.dataset.currentCode || '';
+  const keyword = (($('gr-cat-search')?.value || '').trim()).toLowerCase();
+  const filtered = goodsCategoryLeavesCache.filter(c => `${c.code} ${c.l1} ${c.l2} ${c.l3} ${c.l4}`.toLowerCase().includes(keyword));
+  const options = filtered.map(c=>`<option value="${c.code}" ${c.code===activeCode?'selected':''}>${esc(`${c.code}｜${c.l1}>${c.l2}>${c.l3}>${c.l4}`)}</option>`).join('');
+  select.innerHTML = `<option value="">请选择分类</option>${options}`;
+  if(activeCode && filtered.some(c => c.code === activeCode)) select.value = activeCode;
+}
+async function openGoodsCategoryPicker(id, currentCode='', currentName=''){
+  const categories = await GET('/categories?q=');
+  goodsCategoryLeavesCache = (Array.isArray(categories)?categories:(categories.data||[])).filter(c => c.l4);
+  openMd(`<div class="modal-title">🏷 选择商品分类</div>
+    <div class="form-group"><label>当前分类</label><div style="padding:9px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:7px">${esc(currentName||'未匹配')}</div></div>
+    <div class="form-group"><label>搜索分类</label><input type="text" id="gr-cat-search" placeholder="输入分类编码/名称快速定位" oninput="renderGoodsCategoryOptions()"></div>
+    <div class="form-group"><label>末级分类</label><select id="gr-cat" data-current-code="${esc(currentCode||'')}"><option value="">请选择分类</option></select></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeMd()">取消</button>
+      <button class="btn btn-outline" onclick="saveGoodsCategory('${id}', false)">仅保存分类</button>
+      <button class="btn btn-primary" onclick="saveGoodsCategory('${id}', true)">保存并归一</button>
+    </div>`);
+  renderGoodsCategoryOptions(currentCode || '');
+}
+async function setGoodsCategoryByCode(id, code, runUnify, encoded=false){
+  const safeCode = encoded ? decodeURIComponent(code || '') : code;
+  if(!safeCode) return toast('请选择分类','error');
+  if(!goodsCategoryLeavesCache.length){
+    const categories = await GET('/categories?q=');
+    goodsCategoryLeavesCache = (Array.isArray(categories)?categories:(categories.data||[])).filter(c => c.l4);
+  }
+  const cat = goodsCategoryLeavesCache.find(c => c.code === safeCode);
+  if(!cat) return toast('分类不存在','error');
+  await PUT('/goods-raw/'+id, { category_code: cat.code, category_name: `${cat.l1}>${cat.l2}>${cat.l3}>${cat.l4}`, category_candidates:null, match_status:'分类已匹配', status:'未归一' });
+  closeMd();
+  toast('分类已保存');
+  if(runUnify) await triggerGoodsUnify([id]);
+  else if(typeof loadList === 'function') loadList();
+}
+async function saveGoodsCategory(id, runUnify){
+  const code = $('gr-cat').value;
+  await setGoodsCategoryByCode(id, code, runUnify);
+}
+async function openGoodsRelations(id, type='same'){
+  try{
+    const list = await GET(`/goods-unify/item-relations/${id}?type=${type}`);
+    const title = type === 'same' ? '同款商品明细' : '相似商品明细（已过滤同款）';
+    const rows = (list || []).map(i=>`<tr><td style="font-family:monospace;color:var(--blue)">${esc(i.orig_code||'')}</td><td>${esc(i.name||'')}</td><td>${Number(i.score||0).toFixed(4)}</td><td style="font-family:monospace">${esc(i.std_code||'—')}</td></tr>`).join('');
+    openMd(`<div class="modal-title">🔎 ${title}</div>
+      <div class="tbl-wrap"><table><thead><tr><th>原始编码</th><th>商品名称</th><th>相似度</th><th>标准编码</th></tr></thead><tbody>${rows || `<tr><td colspan="4">暂无明细</td></tr>`}</tbody></table></div>
+      <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">关闭</button></div>`);
+  }catch(e){toast(e.message,'error');}
+}
+async function openGoodsAttrEditor(payload){
+  const row = JSON.parse(decodeURIComponent(payload));
+  const cats = await GET('/categories?q=');
+  const cat = (Array.isArray(cats)?cats:(cats.data||[])).find(c => c.code === row.category_code);
+  const keyAttrs = String(cat?.key_attrs || '').split(',').map(s=>s.trim()).filter(Boolean);
+  let attrs = {};
+  try { attrs = JSON.parse(row.attrs_json || '{}'); } catch(e) { attrs = {}; }
+  const attrInputs = keyAttrs.map((k, idx)=>`<div class="form-group"><label>${esc(k)}</label><input type="text" id="ga-attr-${idx}" value="${esc(attrs[k]||'')}" placeholder="请填写${esc(k)}"></div>`).join('');
+  openMd(`<div class="modal-title">🛠 补全商品属性</div>
+    <div class="alert alert-blue">当前分类：${esc(row.category_name||'未分类')}<br>缺失字段：${esc(row.missing_attrs||'—')}</div>
+    <div class="form-group"><label>品牌</label><input type="text" id="ga-brand" value="${esc(row.brand||'')}" placeholder="品牌"></div>
+    <div class="form-group"><label>核心词</label><input type="text" id="ga-core" value="${esc(row.core_word||'')}" placeholder="核心词"></div>
+    <div class="form-group"><label>型号</label><input type="text" id="ga-model" value="${esc(row.model||'')}" placeholder="型号"></div>
+    ${attrInputs || '<div style="font-size:12px;color:var(--text3)">该分类未配置关键属性</div>'}
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">取消</button><button class="btn btn-primary" onclick="saveGoodsAttrs('${row.id}','${encodeURIComponent(JSON.stringify(keyAttrs))}')">保存</button></div>`);
+}
+async function saveGoodsAttrs(id, keyPayload){
+  const keyAttrs = JSON.parse(decodeURIComponent(keyPayload));
+  const attrs = {};
+  keyAttrs.forEach((k, idx) => { attrs[k] = $(`ga-attr-${idx}`)?.value?.trim() || 'unknown'; });
+  try{
+    await POST('/goods-unify/update-attrs', {
+      id,
+      brand: $('ga-brand').value.trim() || 'unknown',
+      core_word: $('ga-core').value.trim() || 'unknown',
+      model: $('ga-model').value.trim() || 'unknown',
+      attrs,
+    });
+    closeMd();
+    toast('属性已更新，可重新发起归一');
+    if(typeof loadList === 'function') loadList();
+  }catch(e){toast(e.message,'error');}
+}
+function openGoodsReview(payload){
+  const row = JSON.parse(decodeURIComponent(payload));
+  const candidates = (()=>{ try { return JSON.parse(row.review_candidates||'[]'); } catch(e) { return []; } })();
+  const candidateHtml = candidates.length
+    ? `<div class="tbl-wrap" style="margin-top:10px"><table><thead><tr><th>候选编码</th><th>候选标准品</th><th>相似度</th><th>操作</th></tr></thead><tbody>${candidates.map(c=>`<tr><td style="font-family:monospace;color:var(--blue)">${esc(c.code||'')}</td><td>${esc(c.name||'')}</td><td><span class="badge b-amber">${typeof c.score==='number'?c.score.toFixed(3):c.score||'—'}</span></td><td><button class="btn btn-primary btn-sm" onclick="submitGoodsReview('${row.id}','match_existing','${esc(c.code||'')}')">归到此标准品</button></td></tr>`).join('')}</tbody></table></div>`
+    : `<div class="alert alert-blue" style="margin-top:10px">当前没有可直接复用的候选标准品，建议新建标准商品。</div>`;
+  openMd(`<div class="modal-title">🧾 商品归一人工审核</div>
+    <div class="alert alert-amber">原始商品 <strong>${esc(row.orig_code||'')}</strong> 进入待审核，系统未自动归一。</div>
+    <div class="card-sm">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:6px">原始名称</div>
+      <div style="font-weight:600">${esc(row.orig_name||'—')}</div>
+      <div style="font-size:12px;color:var(--text3);margin:12px 0 6px">建议标准名</div>
+      <div>${esc(row.std_name_proposed||'—')}</div>
+      <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap">
+        <div><span style="font-size:12px;color:var(--text3)">品类</span><div>${esc(row.category_name||'—')}</div></div>
+        <div><span style="font-size:12px;color:var(--text3)">最高相似度</span><div>${row.review_score?Number(row.review_score).toFixed(3):'—'}</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin:12px 0 6px">待审核原因</div>
+      <div>${esc(row.review_reason||'—')}</div>
+    </div>
+    <div style="margin-top:16px;font-size:13px;font-weight:600">候选标准商品</div>
+    ${candidateHtml}
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeMd()">取消</button>
+      <button class="btn btn-green" onclick="submitGoodsReview('${row.id}','create_new')">新建标准商品</button>
+    </div>`);
+}
+async function submitGoodsReview(id, action, stdCode=''){
+  const isCreate = action === 'create_new';
+  if(isCreate && !confirm('确认基于当前建议标准名新建标准商品吗？')) return;
+  try{
+    await POST('/goods-unify/review-standard', { id, action, stdCode });
+    closeMd();
+    if(typeof loadList === 'function') loadList();
+    toast(isCreate?'已新建标准商品并完成归一':'已完成人工归一');
+  }catch(e){toast(e.message,'error');}
+}
 async function exportFullRaw(){
-  const res=await GET('/api/goods-raw?q=');
-  const d = res.data || [];
-  const headers = ['原始编码','原始名称','品牌','核心词','型号','规格属性','品类编码','品类名称','标准编码','标准名称','状态'];
-  const rows = d.map(r=>[r.orig_code,r.orig_name,r.brand,r.core_word,r.model,r.spec,r.category_code,r.category_name,r.std_code,r.std_name,r.status]);
+  const res=await GET('/goods-raw?q=');
+  const d = Array.isArray(res) ? res : (res.data || []);
+  const headers = ['原始编码','原始名称','原始规格','原始品牌','提取品牌','核心词','型号','属性对','属性向量','品类编码','品类名称','同款数','相似商品数','标准编码','标准名称','状态'];
+  const rows = d.map(r=>[r.orig_code,r.orig_name,r.orig_spec||r.spec||'',r.orig_brand||'',r.brand,r.core_word,r.model,r.attr_pairs||r.attrs_json||(String(r.spec||'').trim().startsWith('{')?r.spec:''),r.attrs_vector||'',r.category_code,r.category_name,r.same_count||0,r.similar_count||0,r.std_code,r.std_name,r.status]);
   exportCSV('原始商品全量数据.csv', headers, rows);
 }
 
 function pgGoodsStd(){
   makeListPage({
     title:'⭐ 标准商品', apiPath:'/goods-std', searchPlaceholder:'搜索编码/名称...',
-    columns:[{label:'标准编码'},{label:'标准商品名称'},{label:'品类'},{label:'子件原始商品数'},{label:'挂载物料编码'}],
+    columns:[{label:'标准编码'},{label:'标准商品名称'},{label:'品类'},{label:'关联原始商品'},{label:'关联物料'},{label:'疑似物料'}],
     extraBtns:`<button class="btn btn-outline btn-sm" onclick="exportStd()">⬇ 导出</button>`,
-    rowRenderer:s=>`<tr>
+    usePagination:true,
+    rowRenderer:(s, usePagination)=>`<tr>
+      ${usePagination?`<td><input type="checkbox" class="row-sel" value="${s.id}"></td>`:''}
       <td style="font-family:monospace;color:var(--blue)">${s.code}</td>
       <td style="font-weight:600">${s.name}</td>
       <td>${s.category?`<span class="badge b-blue">${s.category}</span>`:'—'}</td>
-      <td style="text-align:center"><span class="badge b-gray" style="cursor:pointer" onclick="alert('包含商品：\\n待开发详情弹窗')">${s.raw_count||0} 个子件</span></td>
-      <td style="font-family:monospace;font-size:12px;color:var(--green)">${s.mat_code||'未挂载'}</td>
+      <td style="text-align:center">${Number(s.raw_count||0)>0?`<button class="btn btn-outline btn-sm" onclick="openStdRawItems('${s.id}','${encodeURIComponent(s.name||'')}')">${Number(s.raw_count||0)}</button>`:'0'}</td>
+      <td>${renderMaterialDisplay(s.mat_code, s.mat_name)}</td>
+      <td>${renderSuspectMaterialCell({id:s.id,goods_code:s.code,goods_name:s.name,mat_code:s.mat_code,mat_candidates:s.mat_candidates})}</td>
       <td style="display:flex;gap:5px">
-        <button class="btn btn-outline btn-sm" onclick="editStd('${s.id}')">编辑</button>
+        <button class="btn btn-outline btn-sm" onclick="editStd('${encodeURIComponent(JSON.stringify({id:s.id,code:s.code,name:s.name,category:s.category,attrs:s.attrs,mat_code:s.mat_code,mat_name:s.mat_name}))}')">编辑</button>
         <button class="btn btn-red btn-sm" onclick="delItem('/goods-std','${s.id}')">删除</button>
       </td>
     </tr>`
   });
+}
+function renderMaterialDisplay(matCode, matName){
+  if(!matCode) return `<span class="badge b-gray">未关联</span>`;
+  return `<span style="font-family:monospace;color:var(--green)">${esc(matCode)}${matName?`｜${esc(matName)}`:''}</span>`;
+}
+async function openStdRawItems(stdId, encodedStdName){
+  try{
+    const resp = await GET(`/goods-std/${stdId}/raw-items`);
+    const rows = resp.list || [];
+    const stdName = decodeURIComponent(encodedStdName || '');
+    const html = rows.map(r=>`<tr>
+      <td style="font-family:monospace;color:var(--blue)">${esc(r.orig_code||'')}</td>
+      <td>${esc(r.orig_name||'')}</td>
+      <td>${esc(r.orig_spec||'—')}</td>
+      <td>${esc(r.orig_brand||'—')}</td>
+      <td>${esc(r.category_name||'—')}</td>
+      <td>${esc(r.status||'—')}</td>
+    </tr>`).join('');
+    openMd(`<div class="modal-title">📦 关联原始商品</div>
+      <div class="alert alert-blue">标准商品：${esc(stdName || resp.std?.name || '')}（共 ${rows.length} 条）</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>原始编码</th><th>原始名称</th><th>原始规格</th><th>原始品牌</th><th>品类</th><th>状态</th></tr></thead>
+        <tbody>${html || `<tr><td colspan="6">暂无关联原始商品</td></tr>`}</tbody>
+      </table></div>
+      <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">关闭</button></div>`);
+  }catch(e){toast(e.message,'error');}
 }
 async function openAddStd(){
   const {code}=await GET('/gen-goods-code');
@@ -1236,28 +1942,203 @@ async function saveNewStd(){
   await POST('/goods-std',{code:$('ns1').value,name,category:$('ns3').value,attrs:$('ns4').value,raw_count:0,mat_code:$('ns5').value});
   closeMd();loadList();toast('已新增');
 }
-function editStd(id,code,name,cat,attrs,mat){
+function editStd(payload){
+  const row = JSON.parse(decodeURIComponent(payload));
+  const { id, code, name, category: cat, attrs, mat_code: mat, mat_name: matName } = row;
   openMd(`<div class="modal-title">✏️ 编辑标准商品</div>
-  <div class="form-group"><label>商品编码</label><input type="text" id="es1" value="${code}"></div>
-  <div class="form-group"><label>商品名称</label><input type="text" id="es2" value="${name}"></div>
-  <div class="form-group"><label>所属品类</label><input type="text" id="es3" value="${cat}"></div>
-  <div class="form-group"><label>核心属性</label><input type="text" id="es4" value="${attrs}"></div>
-  <div class="form-group"><label>关联物料编码</label><input type="text" id="es5" value="${mat}"></div>
+  <div class="form-group"><label>商品编码</label><input type="text" id="es1" value="${esc(code)}"></div>
+  <div class="form-group"><label>商品名称</label><input type="text" id="es2" value="${esc(name)}"></div>
+  <div class="form-group"><label>所属品类</label><input type="text" id="es3" value="${esc(cat)}"></div>
+  <div class="form-group"><label>核心属性</label><input type="text" id="es4" value="${esc(attrs)}"></div>
+  <div class="form-group"><label>关联物料</label><input type="text" id="es5" value="${esc(mat)}" placeholder="请输入物料编码"></div>
+  <div style="font-size:12px;color:var(--text3);margin-top:-6px">当前物料名称：${esc(matName||'未关联')}</div>
   <div class="modal-footer"><button class="btn btn-outline" onclick="closeMd()">取消</button><button class="btn btn-primary" onclick="saveEditStd('${id}')">保存</button></div>`);
 }
 async function saveEditStd(id){await PUT('/goods-std/'+id,{code:$('es1').value,name:$('es2').value,category:$('es3').value,attrs:$('es4').value,mat_code:$('es5').value});closeMd();loadList();toast('已保存');}
-async function exportStd(){const d=await GET('/goods-std?q=');exportCSV('标准商品.csv',['编码','名称','品类','核心属性','关联物料'],d.map(s=>[s.code,s.name,s.category,s.attrs,s.mat_code]));toast('已导出');}
+async function exportStd(){const d=await GET('/goods-std?q=');exportCSV('标准商品.csv',['编码','名称','品类','核心属性','关联物料编码','关联物料名称'],d.map(s=>[s.code,s.name,s.category,s.attrs,s.mat_code,s.mat_name||'']));toast('已导出');}
 
 // ══════════════════════════════════════════════════
 // 商品物料映射
 // ══════════════════════════════════════════════════
 function pgMapping(){
   makeListPage({
-    title:'⇄ 商品物料映射', apiPath:'/mapping', searchPlaceholder:'搜索商品/物料...',
-    columns:[{label:'标准商品编码'},{label:'标准商品名称'},{label:'物料编码'},{label:'物料名称'},{label:'映射类型'},{label:'映射方式'},{label:'创建时间'}],
-    extraBtns:`<button class="btn btn-primary btn-sm" onclick="openAddMapping()">+ 新增映射</button><button class="btn btn-outline btn-sm" onclick="exportMapping()">⬇ 导出</button>`,
-    rowRenderer:m=>`<tr><td style="font-family:monospace;font-size:12px;color:var(--blue)">${m.goods_code}</td><td>${m.goods_name}</td><td style="font-family:monospace;font-size:12px;color:var(--text3)">${m.mat_code}</td><td>${m.mat_name}</td><td><span class="badge b-blue">${m.type}</span></td><td><span class="badge ${m.method==='人工确认'?'b-green':'b-gray'}">${m.method}</span></td><td style="color:var(--text3)">${fmtDate(m.created_at)}</td><td style="display:flex;gap:5px"><button class="btn btn-outline btn-sm" onclick="editMapping('${m.id}','${m.goods_code}','${m.goods_name.replace(/'/g,'&#39;')}','${m.mat_code}','${m.mat_name.replace(/'/g,'&#39;')}','${m.type}','${m.method}')">编辑</button><button class="btn btn-red btn-sm" onclick="delItem('/mapping','${m.id}')">删除</button></td></tr>`
+    title:'⇄ 商品物料映射', apiPath:'/mapping-std', searchPlaceholder:'搜索标准商品/物料...',
+    columns:[{label:'标准商品编码'},{label:'标准商品名称'},{label:'关联原始商品'},{label:'关联物料'},{label:'疑似物料'},{label:'映射类型'},{label:'映射方式'},{label:'更新时间'}],
+    extraBtns:`<button class="btn btn-primary btn-sm" onclick="mappingBatchMatch()">AI批量关联物料</button><button class="btn btn-outline btn-sm" onclick="exportMapping()">⬇ 导出</button>`,
+    usePagination:true,
+    showMassOps:false,
+    rowRenderer:(m, usePagination)=>`<tr>
+      ${usePagination?`<td><input type="checkbox" class="row-sel" value="${m.id}"></td>`:''}
+      <td style="font-family:monospace;font-size:12px;color:var(--blue)">${esc(m.goods_code||'')}</td>
+      <td>${esc(m.goods_name||'')}</td>
+      <td style="text-align:center">${Number(m.raw_count||0)>0?`<button class="btn btn-outline btn-sm" onclick="openStdRawItems('${m.id}','${encodeURIComponent(m.goods_name||'')}')">${Number(m.raw_count||0)}</button>`:'0'}</td>
+      <td>${renderMaterialDisplay(m.mat_code, m.mat_name)}</td>
+      <td>${renderSuspectMaterialCell(m)}</td>
+      <td>${m.type?`<span class="badge b-blue">${esc(m.type)}</span>`:'—'}</td>
+      <td>${m.method?`<span class="badge ${m.method==='人工确认'?'b-green':'b-gray'}">${esc(m.method)}</span>`:'—'}</td>
+      <td style="color:var(--text3)">${m.created_at?fmtDate(m.created_at):'—'}</td>
+      <td style="display:flex;gap:5px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="mappingMatchOne('${m.id}')">AI关联物料</button>
+        <button class="btn btn-outline btn-sm" onclick="openManualMaterialMap('${encodeURIComponent(JSON.stringify({id:m.id,goods_code:m.goods_code,goods_name:m.goods_name,mat_code:m.mat_code,mat_name:m.mat_name}))}')">手动关联</button>
+      </td>
+    </tr>`
   });
+}
+function parseMatCandidates(value){
+  if(!value) return [];
+  try{
+    const arr = JSON.parse(value);
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){return [];}
+}
+function filterSuspectMaterials(list, currentMatCode=''){
+  const current = String(currentMatCode || '').trim();
+  return (Array.isArray(list) ? list : []).filter(item => item && item.code && item.code !== current);
+}
+function renderSuspectMaterialCell(row){
+  const list = filterSuspectMaterials(parseMatCandidates(row.mat_candidates), row.mat_code);
+  if(!list.length) return '0';
+  return `<button class="btn btn-outline btn-sm" onclick="openSuspectMaterials('${encodeURIComponent(JSON.stringify({id:row.id,goods_code:row.goods_code,goods_name:row.goods_name,mat_code:row.mat_code,mat_candidates:JSON.stringify(list)}))}')">${list.length}</button>`;
+}
+let mappingMatCache = [];
+function renderManualMatOptions(currentCode=''){
+  const select = $('mm-mat');
+  if(!select) return;
+  if(currentCode) select.dataset.currentCode = currentCode;
+  const activeCode = select.dataset.currentCode || '';
+  const kw = (($('mm-search')?.value || '').trim()).toLowerCase();
+  const list = mappingMatCache.filter(m => `${m.code} ${m.name}`.toLowerCase().includes(kw)).slice(0, 600);
+  const opts = list.map(m => `<option value="${m.code}" ${m.code===activeCode?'selected':''}>${esc(`${m.code}｜${m.name}`)}</option>`).join('');
+  select.innerHTML = `<option value="">请选择物料</option>${opts}`;
+  if(activeCode && list.some(m => m.code === activeCode)) select.value = activeCode;
+}
+async function openManualMaterialMap(payload){
+  const row = JSON.parse(decodeURIComponent(payload || '{}'));
+  if(!row?.id) return toast('标准商品信息缺失','error');
+  if(!mappingMatCache.length){
+    const mats = await GET('/mat-archive?q=');
+    mappingMatCache = Array.isArray(mats) ? mats : (mats.data || []);
+  }
+  openMd(`<div class="modal-title">🧩 手动关联物料</div>
+    <div class="alert alert-blue">标准商品：<strong>${esc(row.goods_code||'')}</strong> ${esc(row.goods_name||'')}</div>
+    <div class="form-group"><label>当前关联</label><div style="padding:9px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:7px">${row.mat_code?`${esc(row.mat_code)}｜${esc(row.mat_name||'')}`:'未关联'}</div></div>
+    <div class="form-group"><label>搜索物料</label><input type="text" id="mm-search" placeholder="输入物料编码/名称快速筛选" oninput="renderManualMatOptions()"></div>
+    <div class="form-group"><label>选择物料</label><select id="mm-mat" data-current-code="${esc(row.mat_code||'')}"><option value="">请选择物料</option></select></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeMd()">取消</button>
+      <button class="btn btn-primary" onclick="saveManualMaterialMap('${encodeURIComponent(JSON.stringify({id:row.id}))}')">保存关联</button>
+    </div>`);
+  renderManualMatOptions(row.mat_code || '');
+}
+async function saveManualMaterialMap(payload){
+  const row = JSON.parse(decodeURIComponent(payload || '{}'));
+  const matCode = $('mm-mat')?.value || '';
+  if(!row?.id) return toast('标准商品信息缺失','error');
+  if(!matCode) return toast('请选择物料','error');
+  try{
+    await POST('/goods-unify/manual-match-material', { stdId: row.id, matCode });
+    closeMd();
+    toast('手动关联成功');
+    if(typeof loadList === 'function') loadList();
+  }catch(e){toast(e.message,'error');}
+}
+async function openSuspectMaterials(payload){
+  const row = JSON.parse(decodeURIComponent(payload || '{}'));
+  const list = filterSuspectMaterials(parseMatCandidates(row.mat_candidates), row.mat_code);
+  if(!row?.id) return toast('标准商品信息缺失','error');
+  if(!list.length) return toast('暂无疑似物料','info');
+  const rows = list.map((m, idx) => `<tr>
+    <td>${idx + 1}</td>
+    <td style="font-family:monospace;color:var(--blue)">${esc(m.code||'')}</td>
+    <td>${esc(m.name||'')}</td>
+    <td>${Number(m.score||0).toFixed(4)}</td>
+    <td><button class="btn btn-primary btn-sm" onclick="quickBindSuspectMaterial('${row.id}','${encodeURIComponent(m.code||'')}',true)">关联此物料</button></td>
+  </tr>`).join('');
+  openMd(`<div class="modal-title">🔎 疑似物料</div>
+    <div class="alert alert-blue">标准商品：<strong>${esc(row.goods_code||'')}</strong> ${esc(row.goods_name||'')}</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>#</th><th>物料编码</th><th>物料名称</th><th>相似度</th><th>操作</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeMd()">关闭</button>
+      <button class="btn btn-outline" onclick="closeMd();openManualMaterialMap('${encodeURIComponent(JSON.stringify({id:row.id,goods_code:row.goods_code,goods_name:row.goods_name}))}')">手动搜索关联</button>
+    </div>`);
+}
+async function quickBindSuspectMaterial(stdId, matCode, encoded=false){
+  const safeMatCode = encoded ? decodeURIComponent(matCode || '') : matCode;
+  if(!stdId || !safeMatCode) return toast('参数缺失','error');
+  try{
+    await POST('/goods-unify/manual-match-material', { stdId, matCode: safeMatCode });
+    closeMd();
+    toast('关联成功');
+    if(typeof loadList === 'function') loadList();
+  }catch(e){toast(e.message,'error');}
+}
+function openMaterialMatchRunModal(title, total){
+  openMd(`<div class="modal-title">⚙ ${esc(title || 'AI关联物料执行过程')}</div>
+    <div class="alert alert-blue">本次任务：${Number(total||0)} 条标准商品</div>
+    <div class="progress-bar"><div class="progress-fill" id="mm-run-prog" style="width:0%;background:linear-gradient(90deg,var(--blue),var(--cyan))"></div></div>
+    <div id="mm-run-status" style="font-size:12px;color:var(--text3);margin-top:8px">任务已创建，准备执行...</div>
+    <div id="mm-run-log" style="margin-top:12px;max-height:300px;overflow-y:auto;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px;line-height:1.7"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="mm-run-close" onclick="closeMd()" disabled>关闭</button>
+    </div>`);
+}
+function setMaterialMatchRunProgress(percent, statusText){
+  const bar = $('mm-run-prog');
+  if(bar) bar.style.width = `${Math.max(0, Math.min(100, Number(percent||0)))}%`;
+  if($('mm-run-status')) $('mm-run-status').textContent = statusText || '';
+}
+function appendMaterialMatchRunLog(text, color='var(--text2)'){
+  const log = $('mm-run-log');
+  if(!log) return;
+  log.innerHTML += `<div style="color:${color}">${esc(text)}</div>`;
+  log.scrollTop = log.scrollHeight;
+}
+async function runMaterialMatchWithDialog(ids, title='AI关联物料执行过程'){
+  if(!ids || !ids.length) return;
+  openMaterialMatchRunModal(title, ids.length);
+  appendMaterialMatchRunLog(`开始执行，目标 ${ids.length} 条商品...`, 'var(--blue)');
+  setMaterialMatchRunProgress(12, '正在提交任务并加载候选物料向量...');
+  try{
+    const r = await POST('/goods-unify/match-material', { ids });
+    const list = Array.isArray(r) ? r : [];
+    setMaterialMatchRunProgress(75, 'AI判定已返回，正在汇总结果...');
+    let ok = 0, none = 0, err = 0;
+    list.forEach((item, idx) => {
+      const label = `${item.goodsCode || item.id || `#${idx+1}`}${item.goodsName?`｜${item.goodsName}`:''}`;
+      if(item.status === 'success'){
+        ok++;
+        appendMaterialMatchRunLog(`✓ ${label} -> ${item.matCode || ''}${item.matName?`｜${item.matName}`:''}`, 'var(--green)');
+      }else if(item.status === 'none'){
+        none++;
+        const suspectCount = Array.isArray(item.candidates) ? item.candidates.length : 0;
+        appendMaterialMatchRunLog(`! ${label} 未自动匹配，疑似物料 ${suspectCount} 条`, 'var(--amber)');
+      }else{
+        err++;
+        appendMaterialMatchRunLog(`✗ ${label} 执行失败：${item.error || '未知错误'}`, 'var(--red)');
+      }
+    });
+    setMaterialMatchRunProgress(100, `执行完成：成功 ${ok} 条，未匹配 ${none} 条，失败 ${err} 条`);
+    appendMaterialMatchRunLog(`任务完成：成功 ${ok}，未匹配 ${none}，失败 ${err}`, 'var(--blue)');
+    $('mm-run-close') && ($('mm-run-close').disabled = false);
+    toast(`AI关联完成：成功 ${ok} 条${none?`，未匹配 ${none} 条`:''}${err?`，失败 ${err} 条`:''}`, err ? 'info' : 'success');
+    if(typeof loadList === 'function') loadList();
+  }catch(e){
+    setMaterialMatchRunProgress(100, '任务执行失败');
+    appendMaterialMatchRunLog(`✗ 任务失败：${e.message}`, 'var(--red)');
+    $('mm-run-close') && ($('mm-run-close').disabled = false);
+    toast(e.message,'error');
+  }
+}
+async function mappingBatchMatch(){
+  const ids = selectedRowIds();
+  if(!ids.length) return toast('请先勾选标准商品','info');
+  await runMaterialMatchWithDialog(ids, 'AI批量关联物料执行过程');
+}
+async function mappingMatchOne(id){
+  await runMaterialMatchWithDialog([id], 'AI关联物料执行过程');
 }
 async function openAddMapping(){
   const [stds,mats]=await Promise.all([GET('/goods-std?q='),GET('/mat-archive?q=')]);
@@ -1287,13 +2168,25 @@ function editMapping(id,gc,gn,mc,mn,type,method){
   $('em5').value=type;$('em6').value=method;
 }
 async function saveEditMapping(id){await PUT('/mapping/'+id,{goods_code:$('em1').value,goods_name:$('em2').value,mat_code:$('em3').value,mat_name:$('em4').value,type:$('em5').value,method:$('em6').value});closeMd();loadList();toast('已保存');}
-async function exportMapping(){const d=await GET('/mapping?q=');exportCSV('商品物料映射.csv',['商品编码','商品名称','物料编码','物料名称','映射类型','映射方式'],d.map(m=>[m.goods_code,m.goods_name,m.mat_code,m.mat_name,m.type,m.method]));toast('已导出');}
+async function exportMapping(){
+  let page = 1;
+  const all = [];
+  while(true){
+    const resp = await GET(`/mapping-std?page=${page}&limit=100`);
+    const rows = resp.data || [];
+    all.push(...rows);
+    if(all.length >= Number(resp.total || 0) || !rows.length) break;
+    page++;
+  }
+  exportCSV('商品物料映射.csv',['标准商品编码','标准商品名称','关联原始商品数','物料编码','物料名称','疑似物料数','映射类型','映射方式'],all.map(m=>[m.goods_code,m.goods_name,m.raw_count||0,m.mat_code||'',m.mat_name||'',parseMatCandidates(m.mat_candidates).length,m.type||'',m.method||'']));
+  toast('已导出');
+}
 
 // ══════════════════════════════════════════════════
 // 系统设置
 // ══════════════════════════════════════════════════
 async function pgSettings(){
-  const s=await GET('/settings').catch(()=>({api_type:'deepseek',api_key:'',api_base:'',api_model:'',mat_code_prefix:'ML',mat_code_digits:'6',goods_code_prefix:'SP',goods_code_digits:'6',mat_extract_prompt:'',mat_similarity_threshold:'0.8',username:'admin'}));
+  const s=await GET('/settings').catch(()=>({api_type:'deepseek',api_key:'',api_base:'',api_model:'',mat_code_prefix:'ML',mat_code_digits:'6',goods_code_prefix:'SP',goods_code_digits:'6',goods_similarity_threshold:'0.45',goods_core_word_prompt:'提取商品的关键品名，去掉品牌、规格、型号、包装、单位等修饰属性',mat_extract_prompt:'',mat_similarity_threshold:'0.8',username:'admin'}));
   $('content').innerHTML=`<h1 class="pt">⚙ 系统设置</h1>
   <div class="grid2">
     <div class="card">
@@ -1324,6 +2217,8 @@ async function pgSettings(){
           <div style="flex:1"><label>商品编码位数</label><input type="number" id="gcd" value="${s.goods_code_digits||6}" min="4" max="10"></div>
         </div>
         <div style="margin-top:8px"><label>物料相似度阈值 (0.5-1.0)</label><input type="number" id="mst" value="${s.mat_similarity_threshold||0.8}" step="0.01" min="0.5" max="1.0"></div>
+        <div style="margin-top:8px"><label>商品自动归一阈值 (0.1-1.0)</label><input type="number" id="gst" value="${s.goods_similarity_threshold||0.45}" step="0.01" min="0.1" max="1.0"></div>
+        <div style="margin-top:8px"><label>商品核心词提取提示词</label><textarea id="gkwp" rows="3" placeholder="用于品类匹配前的核心词提取">${esc(s.goods_core_word_prompt||'提取商品的关键品名，去掉品牌、规格、型号、包装、单位等修饰属性')}</textarea></div>
         <button class="btn btn-outline btn-sm" style="margin-top:10px" onclick="saveCodeRule()">💾 保存规则设置</button>
       </div>
     </div>
@@ -1346,7 +2241,7 @@ async function saveAccount(){
   toast('账号设置已保存');$('username-label').textContent=$('su').value;
 }
 async function saveCodeRule(){
-  await POST('/settings',{mat_code_prefix:$('mcp').value,mat_code_digits:$('mcd').value,goods_code_prefix:$('gcp').value,goods_code_digits:$('gcd').value,mat_similarity_threshold:$('mst').value});
+  await POST('/settings',{mat_code_prefix:$('mcp').value,mat_code_digits:$('mcd').value,goods_code_prefix:$('gcp').value,goods_code_digits:$('gcd').value,goods_similarity_threshold:$('gst').value,mat_similarity_threshold:$('mst').value,goods_core_word_prompt:$('gkwp').value});
   toast('规则设置已保存');
 }
 
