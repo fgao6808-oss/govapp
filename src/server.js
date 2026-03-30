@@ -1338,6 +1338,17 @@ app.post('/api/settings/password', auth, (req, res) => {
 
 // ── Generic CRUD factory ──────────────────────────
 function crudRoutes(app, prefix, table, fields, searchFields, options = {}) {
+  const resolveRow = (identifier) => {
+    const id = String(identifier || '').trim();
+    if (!id) return null;
+    const byId = db.prepare(`SELECT * FROM ${table} WHERE id=?`).get(id);
+    if (byId) return byId;
+    if (fields.includes('code')) {
+      return db.prepare(`SELECT * FROM ${table} WHERE code=?`).get(id) || null;
+    }
+    return null;
+  };
+
   // List
   app.get(`/api/${prefix}`, auth, (req, res) => {
     const { q, filter, filterField, page, limit } = req.query;
@@ -1408,29 +1419,26 @@ function crudRoutes(app, prefix, table, fields, searchFields, options = {}) {
 
   // Delete
   app.delete(`/api/${prefix}/:id`, auth, (req, res) => {
-    const id = req.params.id;
+    const target = resolveRow(req.params.id);
+    if (!target) return res.status(404).json({ error: '记录不存在或已删除' });
+    const id = target.id;
     if (table === 'mat_archive') {
-      const arch = db.prepare('SELECT code FROM mat_archive WHERE id=?').get(id);
-      if (arch) db.prepare("UPDATE mat_raw SET new_code=NULL, new_name=NULL, status='未治理' WHERE new_code=?").run(arch.code);
+      db.prepare("UPDATE mat_raw SET new_code=NULL, new_name=NULL, status='未治理' WHERE new_code=?").run(target.code);
     }
     if (table === 'mat_raw') {
-      const raw = db.prepare('SELECT new_code FROM mat_raw WHERE id=?').get(id);
-      if (raw && raw.new_code) {
-        db.prepare('UPDATE mat_archive SET raw_count = raw_count - 1 WHERE code=?').run(raw.new_code);
+      if (target.new_code) {
+        db.prepare('UPDATE mat_archive SET raw_count = raw_count - 1 WHERE code=?').run(target.new_code);
       }
     }
     if (table === 'goods_raw') {
-      const raw = db.prepare('SELECT std_code FROM goods_raw WHERE id=?').get(id);
-      if (raw?.std_code) db.prepare('UPDATE goods_std SET raw_count = CASE WHEN raw_count > 0 THEN raw_count - 1 ELSE 0 END WHERE code=?').run(raw.std_code);
+      if (target.std_code) db.prepare('UPDATE goods_std SET raw_count = CASE WHEN raw_count > 0 THEN raw_count - 1 ELSE 0 END WHERE code=?').run(target.std_code);
     }
     if (table === 'goods_std') {
-      const std = db.prepare('SELECT code FROM goods_std WHERE id=?').get(id);
-      if (std?.code) {
-        db.prepare(`${resetGoodsRawUnifyStateSql} WHERE std_code=?`).run(std.code);
-        db.prepare('DELETE FROM mapping WHERE goods_code=?').run(std.code);
-      }
+      db.prepare(`${resetGoodsRawUnifyStateSql} WHERE std_code=?`).run(target.code);
+      db.prepare('DELETE FROM mapping WHERE goods_code=?').run(target.code);
     }
-    db.prepare(`DELETE FROM ${table} WHERE id=?`).run(id);
+    const result = db.prepare(`DELETE FROM ${table} WHERE id=?`).run(id);
+    if (!result.changes) return res.status(404).json({ error: '记录不存在或已删除' });
     res.json({ ok: true });
   });
 
@@ -1439,33 +1447,39 @@ function crudRoutes(app, prefix, table, fields, searchFields, options = {}) {
     const { ids } = req.body;
     if (!ids || !ids.length) return res.json({ ok: true });
     const deleteBatch = db.transaction(() => {
-      ids.forEach(id => {
+      const missing = [];
+      ids.forEach(identifier => {
+        const target = resolveRow(identifier);
+        if (!target) {
+          missing.push(identifier);
+          return;
+        }
+        const id = target.id;
         if (table === 'mat_archive') {
-          const arch = db.prepare('SELECT code FROM mat_archive WHERE id=?').get(id);
-          if (arch) db.prepare("UPDATE mat_raw SET new_code=NULL, new_name=NULL, status='未治理' WHERE new_code=?").run(arch.code);
+          db.prepare("UPDATE mat_raw SET new_code=NULL, new_name=NULL, status='未治理' WHERE new_code=?").run(target.code);
         }
         if (table === 'mat_raw') {
-          const raw = db.prepare('SELECT new_code FROM mat_raw WHERE id=?').get(id);
-          if (raw && raw.new_code) {
-            db.prepare('UPDATE mat_archive SET raw_count = raw_count - 1 WHERE code=?').run(raw.new_code);
+          if (target.new_code) {
+            db.prepare('UPDATE mat_archive SET raw_count = raw_count - 1 WHERE code=?').run(target.new_code);
           }
         }
         if (table === 'goods_raw') {
-          const raw = db.prepare('SELECT std_code FROM goods_raw WHERE id=?').get(id);
-          if (raw?.std_code) db.prepare('UPDATE goods_std SET raw_count = CASE WHEN raw_count > 0 THEN raw_count - 1 ELSE 0 END WHERE code=?').run(raw.std_code);
+          if (target.std_code) db.prepare('UPDATE goods_std SET raw_count = CASE WHEN raw_count > 0 THEN raw_count - 1 ELSE 0 END WHERE code=?').run(target.std_code);
         }
         if (table === 'goods_std') {
-          const std = db.prepare('SELECT code FROM goods_std WHERE id=?').get(id);
-          if (std?.code) {
-            db.prepare(`${resetGoodsRawUnifyStateSql} WHERE std_code=?`).run(std.code);
-            db.prepare('DELETE FROM mapping WHERE goods_code=?').run(std.code);
-          }
+          db.prepare(`${resetGoodsRawUnifyStateSql} WHERE std_code=?`).run(target.code);
+          db.prepare('DELETE FROM mapping WHERE goods_code=?').run(target.code);
         }
         db.prepare(`DELETE FROM ${table} WHERE id=?`).run(id);
       });
+      if (missing.length) throw new Error(`以下记录不存在或已删除：${missing.join(', ')}`);
     });
-    deleteBatch();
-    res.json({ ok: true });
+    try {
+      deleteBatch();
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(404).json({ error: e.message });
+    }
   });
 
   // Clear All
